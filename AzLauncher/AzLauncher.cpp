@@ -1,9 +1,6 @@
 #include "ApplicationSetup.hpp"
-#include "UFile.hpp"
-#include "UPixmap.hpp"
 
 struct TextureImagePixmaps {
-    inline static const UPixmap nacho = UPixmap(UFile(R"(D:\AzLauncher\AzLauncher\nacho.png)"));
 };
 
 auto render_objects([[maybe_unused]] UApplication& application) -> URenderScene {

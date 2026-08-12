@@ -1,6 +1,5 @@
 #pragma once
 
-#include "ULogger.hpp"
 #include <UTypes.hpp>
 #include <UTimerParam.hpp>
 #include <chrono>
@@ -9,7 +8,7 @@ namespace chrono = std::chrono;
 template<typename... Args> class UTimer {
     private:
         using TimeoutTask = void(*)(UTimer&, Args&...);
-    
+
     private:
         uts::i64 last_time;
         uts::u64 last_timeout_delay = 0;
@@ -24,6 +23,14 @@ template<typename... Args> class UTimer {
         inline auto get_delta() -> uts::i64 {
             uts::i64 current_time = chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now().time_since_epoch()).count();
             return current_time - last_time;
+        }
+
+        inline auto remove_timeout_events() -> void {
+            timeout_events = {};
+        }
+
+        inline auto pop_timeout_events() -> void {
+            timeout_events.pop_back();
         }
 
         inline auto with_timeout_delay(uts::u64 delay) -> UTimer& {
