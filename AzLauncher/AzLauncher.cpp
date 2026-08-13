@@ -1,6 +1,12 @@
 #include "ApplicationSetup.hpp"
 
-struct TextureImagePixmaps {
+struct Resources {
+    enum TextureImageIndices {
+        Vulkan,
+        MaxTextureImageCount };
+    UPixmap texture_images[TextureImageIndices::MaxTextureImageCount] = { 
+        UPixmap(UFile("vulkan.png"))
+    };
 };
 
 auto render_objects([[maybe_unused]] UApplication& application) -> URenderScene {
