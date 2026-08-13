@@ -5,9 +5,9 @@
 #include <UMacros.hpp>
 #include <URect.hpp>
 #include <UTypes.hpp>
-#include <combaseapi.h>
-#include <intsafe.h>
 #include <vector>
+#define NOMINMAX
+#define WIN32_LEAN_AND_MEAN
 #include <wincodec.h>
 #include <winerror.h>
 #include <wrl/client.h>

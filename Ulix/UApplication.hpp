@@ -1,15 +1,15 @@
 #pragma once
 
+#include <URenderInfo.hpp>
 #include <UTimer.hpp>
 #include <URenderScene.hpp>
-#include <algorithm>
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include <__UBuiltins/__VulkanClasses.hpp>
-#include <__UBuiltins/__VulkanShaderDataClasses.hpp>
-#include <__UBuiltins/__VulkanAlgorithm.hpp>
-#include <__UBuiltins/__VulkanRequirements.hpp>
+#include <__UImpl/__VulkanClasses.hpp>
+#include <__UImpl/__VulkanShaderDataClasses.hpp>
+#include <__UImpl/__VulkanAlgorithm.hpp>
+#include <__UImpl/__VulkanRequirements.hpp>
 #include <URect.hpp>
 #include <ULogger.hpp>
 #include <UColor.hpp>
@@ -42,9 +42,9 @@ class UApplication {
     private:
         RenderCallback render_callback;
         URenderScene current_render_scene;
-        uts::vec<__ubtins::vsdces::Vertex2D> render_vertices;
+        uts::vec<__uimpl::vsdces::Vertex2D> render_vertices;
         uts::vec<uts::u32> render_indices;
-        __ubtins::vsdces::PushConstant push_constant;
+        __uimpl::vsdces::PushConstant push_constant;
         UColor current_background_color;
         bool render_dirty = false;
 
@@ -88,14 +88,14 @@ class UApplication {
                 glm::vec2 top_right = {center.x + half_size.x, center.y - half_size.y};
                 glm::vec2 bottom_right = center + half_size;
                 glm::vec2 bottom_left = {center.x - half_size.x, center.y + half_size.y};
-                glm::vec4 bottom_right_color_vec = __ubtins::vkalg::color_to_vec4(bottom_right_color);
-                glm::vec4 bottom_left_color_vec = __ubtins::vkalg::color_to_vec4(bottom_left_color);
-                glm::vec4 top_left_color_vec = __ubtins::vkalg::color_to_vec4(top_left_color);
-                glm::vec4 top_right_color_vec = __ubtins::vkalg::color_to_vec4(top_right_color);
-                glm::vec4 bottom_right_border_color_vec = __ubtins::vkalg::color_to_vec4(bottom_right_border_color);
-                glm::vec4 bottom_left_border_color_vec = __ubtins::vkalg::color_to_vec4(bottom_left_border_color);
-                glm::vec4 top_left_border_color_vec = __ubtins::vkalg::color_to_vec4(top_left_border_color);
-                glm::vec4 top_right_border_color_vec = __ubtins::vkalg::color_to_vec4(top_right_border_color);
+                glm::vec4 bottom_right_color_vec = __uimpl::vkalg::color_to_vec4(bottom_right_color);
+                glm::vec4 bottom_left_color_vec = __uimpl::vkalg::color_to_vec4(bottom_left_color);
+                glm::vec4 top_left_color_vec = __uimpl::vkalg::color_to_vec4(top_left_color);
+                glm::vec4 top_right_color_vec = __uimpl::vkalg::color_to_vec4(top_right_color);
+                glm::vec4 bottom_right_border_color_vec = __uimpl::vkalg::color_to_vec4(bottom_right_border_color);
+                glm::vec4 bottom_left_border_color_vec = __uimpl::vkalg::color_to_vec4(bottom_left_border_color);
+                glm::vec4 top_left_border_color_vec = __uimpl::vkalg::color_to_vec4(top_left_border_color);
+                glm::vec4 top_right_border_color_vec = __uimpl::vkalg::color_to_vec4(top_right_border_color);
 
 
                 render_vertices.insert(render_vertices.end(), {
@@ -277,9 +277,9 @@ class UApplication {
 
     public:
         UApplication() = default;
-        UApplication(const UApplicationInfo& application_info, const UWindowInfo& window_info, const RenderCallback& render_callback) {
+        UApplication(const UApplicationInfo& application_info, const UWindowInfo& window_info, const URenderInfo& render_info) {
             create_window(window_info);
-            create_vulkan_objects(application_info, render_callback);
+            create_vulkan_objects(application_info, reinterpret_cast<RenderCallback>(render_info.get_render_callback()));
         }
         ~UApplication() { destroy_vulkan_objects(); }
 
@@ -392,9 +392,9 @@ class UApplication {
         VkInstance vulkan_instance;
         VkDebugUtilsMessengerEXT debug_messenger = VK_NULL_HANDLE;
         VkPhysicalDevice physical_device = VK_NULL_HANDLE;
-        __ubtins::vkclses::PhysicalDeviceInfos physical_device_infos;
+        __uimpl::vkclses::PhysicalDeviceInfos physical_device_infos;
         VkDevice logical_device;
-        __ubtins::vkclses::DeviceQueues device_queues;
+        __uimpl::vkclses::DeviceQueues device_queues;
         VkSurfaceKHR window_surface;
         VkSwapchainKHR swapchain;
         uts::vec<VkImage> swapchain_images;
@@ -413,9 +413,9 @@ class UApplication {
         uts::size max_frames_in_flight;
         uts::u32 current_frame = 0;
 
-        __ubtins::vkclses::Buffer staging_buffer;
-        __ubtins::vkclses::Buffer vertex_buffer;
-        __ubtins::vkclses::Buffer index_buffer;
+        __uimpl::vkclses::Buffer staging_buffer;
+        __uimpl::vkclses::Buffer vertex_buffer;
+        __uimpl::vkclses::Buffer index_buffer;
 
     private:
         inline auto create_vulkan_instance(const UApplicationInfo& application_info) -> void {
@@ -430,12 +430,12 @@ class UApplication {
             vulkan_instance_create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
             vulkan_instance_create_info.pApplicationInfo = &vulkan_application_info;
             vulkan_instance_create_info.enabledLayerCount = 0;
-            vulkan_instance_create_info.ppEnabledLayerNames = __ubtins::vkreqs::required_validation_layer;
+            vulkan_instance_create_info.ppEnabledLayerNames = __uimpl::vkreqs::required_validation_layer;
             vulkan_instance_create_info.enabledExtensionCount = 2;
-            vulkan_instance_create_info.ppEnabledExtensionNames = __ubtins::vkreqs::required_extensions;
+            vulkan_instance_create_info.ppEnabledExtensionNames = __uimpl::vkreqs::required_extensions;
             VkDebugUtilsMessengerCreateInfoEXT debug_utils_messenger_create_info;
 
-            if (application_info.get_enabled_vulkan_validation_layers()) {
+            if (application_info.get_enabled_vulkan_debug()) {
                 if (!check_validation_layer_support())
                     ULogger::ulixerr("Requested validation layers not available");
 
@@ -475,7 +475,7 @@ class UApplication {
         }
     
         inline auto create_debug_messenger(const UApplicationInfo& application_info) -> void {
-            if (!application_info.get_enabled_vulkan_validation_layers())
+            if (!application_info.get_enabled_vulkan_debug())
                 return;
 
             VkDebugUtilsMessengerCreateInfoEXT debug_utils_messenger_create_info;
@@ -514,12 +514,12 @@ class UApplication {
             vkEnumeratePhysicalDevices(vulkan_instance, &physical_device_count, physical_devices.data());
 
             VkPhysicalDevice alternative_device = VK_NULL_HANDLE;
-            __ubtins::vkclses::PhysicalDeviceInfos alternative_device_infos;
+            __uimpl::vkclses::PhysicalDeviceInfos alternative_device_infos;
             uts::u32 last_discrete_gpu_score = 0;
             uts::u32 last_alternative_device_score = 0;
 
             for (const auto& device : physical_devices) {
-                __ubtins::vkclses::PhysicalDeviceInfos device_infos = __ubtins::vkclses::PhysicalDeviceInfos(device, window_surface);
+                __uimpl::vkclses::PhysicalDeviceInfos device_infos = __uimpl::vkclses::PhysicalDeviceInfos(device, window_surface);
                 if (!device_infos.is_suitable()) continue;
                 uts::u32 score = get_device_score(device_infos);
                 if (device_infos.match_gpu_type(VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) && score > last_discrete_gpu_score) {
@@ -539,7 +539,7 @@ class UApplication {
             physical_device_infos = alternative_device_infos;
         }
 
-        inline auto get_device_score(const __ubtins::vkclses::PhysicalDeviceInfos& device_infos) -> uts::u32 {
+        inline auto get_device_score(const __uimpl::vkclses::PhysicalDeviceInfos& device_infos) -> uts::u32 {
             uts::u64 device_local_bytes = 0;
             for (uts::u32 index = 0; index < device_infos.memory_properties.memoryHeapCount; ++index) {
                 if (!(device_infos.memory_properties.memoryHeaps[index].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT)) continue;
@@ -575,11 +575,11 @@ class UApplication {
             device_create_info.pQueueCreateInfos = device_queue_create_infos.data();
             device_create_info.pEnabledFeatures = &physical_device_features;
             device_create_info.enabledExtensionCount = 1;
-            device_create_info.ppEnabledExtensionNames = __ubtins::vkreqs::enabled_extension;
+            device_create_info.ppEnabledExtensionNames = __uimpl::vkreqs::enabled_extension;
             if (vkCreateDevice(physical_device, &device_create_info, VK_NULL_HANDLE, &logical_device) != VK_SUCCESS)
                 ULogger::ulixerr("Failed to create logical device");
 
-            device_queues = __ubtins::vkclses::DeviceQueues(logical_device, physical_device_infos);
+            device_queues = __uimpl::vkclses::DeviceQueues(logical_device, physical_device_infos);
         }
 
         inline auto create_window_surface() -> void {
@@ -593,8 +593,8 @@ class UApplication {
         }
 
         inline auto create_swapchain() -> void {
-            __ubtins::vkclses::SwapchainSupportDetails& swapchain_support_details = physical_device_infos.swapchain_support_details;
-            __ubtins::vkclses::OptionalQueueFamilyIndices& optional_queue_family_indices = physical_device_infos.queue_family_indices;
+            __uimpl::vkclses::SwapchainSupportDetails& swapchain_support_details = physical_device_infos.swapchain_support_details;
+            __uimpl::vkclses::OptionalQueueFamilyIndices& optional_queue_family_indices = physical_device_infos.queue_family_indices;
             VkSurfaceFormatKHR surface_format = swapchain_support_details.select_surface_format();
             VkExtent2D extent = swapchain_support_details.select_extent(window_hwnd);
             uts::u32 queue_family_indices[] = { optional_queue_family_indices.graphics_queue_family_index.value(), optional_queue_family_indices.present_queue_family_index.value() };
@@ -696,10 +696,10 @@ class UApplication {
             VkPipelineDynamicStateCreateInfo pipeline_dynamic_state_create_info{};
             pipeline_dynamic_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
             pipeline_dynamic_state_create_info.dynamicStateCount = 2;
-            pipeline_dynamic_state_create_info.pDynamicStates = __ubtins::vkreqs::dynamic_states;
+            pipeline_dynamic_state_create_info.pDynamicStates = __uimpl::vkreqs::dynamic_states;
 
-            VkVertexInputBindingDescription vertex_input_binding_description = __ubtins::vsdces::Vertex2D::get_binding_description();
-            uts::arr<VkVertexInputAttributeDescription, 7> vertex_input_attribute_descriptions = __ubtins::vsdces::Vertex2D::get_attribute_descriptions();
+            VkVertexInputBindingDescription vertex_input_binding_description = __uimpl::vsdces::Vertex2D::get_binding_description();
+            uts::arr<VkVertexInputAttributeDescription, 7> vertex_input_attribute_descriptions = __uimpl::vsdces::Vertex2D::get_attribute_descriptions();
 
             VkPipelineVertexInputStateCreateInfo pipeline_vertex_input_state_create_info{};
             pipeline_vertex_input_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -778,7 +778,7 @@ class UApplication {
             VkPushConstantRange push_constant_range{};
             push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
             push_constant_range.offset = 0;
-            push_constant_range.size = sizeof(__ubtins::vsdces::PushConstant);
+            push_constant_range.size = sizeof(__uimpl::vsdces::PushConstant);
 
             VkPipelineLayoutCreateInfo pipeline_layout_create_info{};
             pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -790,8 +790,8 @@ class UApplication {
                 ULogger::ulixerr("Failed to create pipeline layout");
 
 
-            __ubtins::vkalg::ensure_cache_exists(cache_file_path);
-            uts::vec<char> cache_data = __ubtins::vkalg::read_cache(cache_file_path);
+            __uimpl::vkalg::ensure_cache_exists(cache_file_path);
+            uts::vec<char> cache_data = __uimpl::vkalg::read_cache(cache_file_path);
             VkPipelineCacheCreateInfo pipeline_cache_create_info{};
             pipeline_cache_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
             pipeline_cache_create_info.initialDataSize = cache_data.size();
@@ -826,7 +826,7 @@ class UApplication {
             vkGetPipelineCacheData(logical_device, pipeline_cache, &cache_data_size, nullptr);
             new_cache_data.resize(cache_data_size);
             vkGetPipelineCacheData(logical_device, pipeline_cache, &cache_data_size, new_cache_data.data());
-            __ubtins::vkalg::write_cache(cache_file_path, new_cache_data);
+            __uimpl::vkalg::write_cache(cache_file_path, new_cache_data);
             vkDestroyPipelineCache(logical_device, pipeline_cache, nullptr);
             vkDestroyShaderModule(logical_device, fragment_shader_module, VK_NULL_HANDLE);
             vkDestroyShaderModule(logical_device, vertex_shader_module, VK_NULL_HANDLE);
@@ -957,7 +957,7 @@ class UApplication {
 
         inline auto create_staging_buffer() -> void {
             constexpr VkDeviceSize size = 1 << 22;
-            staging_buffer = __ubtins::vkclses::Buffer(
+            staging_buffer = __uimpl::vkclses::Buffer(
                 physical_device, logical_device,  size, 
                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
@@ -965,8 +965,8 @@ class UApplication {
         }
 
         inline auto create_vertex_buffer() -> void {
-            VkDeviceSize size = render_vertices.size() * sizeof(__ubtins::vsdces::Vertex2D);
-            vertex_buffer = __ubtins::vkclses::Buffer(
+            VkDeviceSize size = render_vertices.size() * sizeof(__uimpl::vsdces::Vertex2D);
+            vertex_buffer = __uimpl::vkclses::Buffer(
                 physical_device, logical_device, size, 
                 VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
@@ -975,7 +975,7 @@ class UApplication {
 
         inline auto create_index_buffer() -> void {
             VkDeviceSize size = render_indices.size() * sizeof(uts::u32);
-            index_buffer = __ubtins::vkclses::Buffer(
+            index_buffer = __uimpl::vkclses::Buffer(
                 physical_device, logical_device, size, 
                 VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, 
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
@@ -983,8 +983,8 @@ class UApplication {
         }
 
         inline auto update_object_buffers() -> void {
-            staging_buffer.map_memory(logical_device, render_vertices.data(), render_vertices.size() * sizeof(__ubtins::vsdces::Vertex2D));
-            staging_buffer.copy_buffer_to(vertex_buffer, logical_device, command_pool, device_queues.graphics_queue, render_vertices.size() * sizeof(__ubtins::vsdces::Vertex2D));
+            staging_buffer.map_memory(logical_device, render_vertices.data(), render_vertices.size() * sizeof(__uimpl::vsdces::Vertex2D));
+            staging_buffer.copy_buffer_to(vertex_buffer, logical_device, command_pool, device_queues.graphics_queue, render_vertices.size() * sizeof(__uimpl::vsdces::Vertex2D));
             staging_buffer.map_memory(logical_device, render_indices.data(), render_indices.size() * sizeof(uts::u32));
             staging_buffer.copy_buffer_to(index_buffer, logical_device, command_pool, device_queues.graphics_queue, render_indices.size() * sizeof(uts::u32));
         }
@@ -1075,7 +1075,7 @@ class UApplication {
             vkCmdBindVertexBuffers(command_buffer, 0, 1, &vertex_buffer.buffer, offsets);
             vkCmdBindIndexBuffer(command_buffer, index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
     
-            vkCmdPushConstants(command_buffer, pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(__ubtins::vsdces::PushConstant), &push_constant);
+            vkCmdPushConstants(command_buffer, pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(__uimpl::vsdces::PushConstant), &push_constant);
     
             vkCmdDrawIndexed(command_buffer, static_cast<uts::u32>(render_indices.size()), 1, 0, 0, 0);
             vkCmdEndRenderPass(command_buffer);

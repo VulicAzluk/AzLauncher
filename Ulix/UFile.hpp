@@ -14,8 +14,7 @@ class UFile {
         UFile() = default;
         UFile(const uts::str file_path, bool create = false) {
             if (!std::filesystem::exists(file_path)) {
-                if (!create)
-                    ULogger::ulixerr("File doesn't exists");
+                if (!create) ULogger::ulixerr("File {} doesn't exists", file_path);
                 std::ofstream file_handle = std::ofstream(file_path);
                 file_handle << "";
             }

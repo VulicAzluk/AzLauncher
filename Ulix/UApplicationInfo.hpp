@@ -41,5 +41,5 @@ class UApplicationInfo {
         inline auto get_application_id() const -> const uts::str& { return application_id; }
         inline auto get_application_version() const -> uts::u32 { return application_version; }
         inline auto get_pipeline_cache_file_path() const -> const UFile& { return cache_file_path; }
-        inline auto get_enabled_vulkan_validation_layers() const -> bool { return enabled_vulkan_debug; }
+        inline auto get_enabled_vulkan_debug() const -> bool { return enabled_vulkan_debug; }
 };

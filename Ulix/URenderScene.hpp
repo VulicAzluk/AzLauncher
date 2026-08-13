@@ -1,6 +1,6 @@
 #pragma once
 
-#include <__UBuiltins/__VulkanShaderDataClasses.hpp>
+#include <UTypes.hpp>
 #include <UColor.hpp>
 #include <UObject.hpp>
 

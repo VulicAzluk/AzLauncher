@@ -1,5 +1,6 @@
 #pragma once
 
+#include "URenderInfo.hpp"
 #include "UTimer.hpp"
 #include <ULogger.hpp>
 #include <UWinScreen.hpp>
@@ -48,8 +49,9 @@ inline std::filesystem::path get_cache_path() {
 namespace ApplicationSetup {
     inline UWindowInfo window_info;
     inline UApplicationInfo application_info;
+    inline URenderInfo render_info;
 
-    inline void initialize() {
+    inline void initialize(UApplication::RenderCallback render_callback, uts::vec<UPixmap> texture_images) {
         UApplication::initialize();
 
         window_info = UWindowInfo("AzLauncher", "AzLauncherWindowClass")
@@ -58,10 +60,12 @@ namespace ApplicationSetup {
         application_info = UApplicationInfo("AzLauncher", (get_cache_path() / "cache.bin").string())
             .with_version(1, 0, 0)
             .with_vulkan_debug(enabled_vulkan_debug);
+        render_info = URenderInfo(render_callback)
+            .with_texture_images(texture_images);
     }
 
-    inline int execute(UApplication::RenderCallback render_callback, UApplication::TickTimer tick_timer) {
-        UApplication application = UApplication(application_info, window_info, render_callback);
+    inline int execute(UApplication::TickTimer tick_timer) {
+        UApplication application = UApplication(application_info, window_info, render_info);
         application.set_window_rect(UWinScreen::get_rect().create_center_rect(application.get_window_rect()));
         application.set_tick_timer(tick_timer);
 

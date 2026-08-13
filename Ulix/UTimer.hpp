@@ -1,7 +1,6 @@
 #pragma once
 
 #include <UTypes.hpp>
-#include <UTimerParam.hpp>
 #include <chrono>
 
 namespace chrono = std::chrono;

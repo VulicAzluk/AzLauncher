@@ -1,11 +1,11 @@
 #include "ApplicationSetup.hpp"
 
 struct Resources {
-    enum TextureImageIndices {
-        Vulkan,
-        MaxTextureImageCount };
-    UPixmap texture_images[TextureImageIndices::MaxTextureImageCount] = { 
-        UPixmap(UFile("vulkan.png"))
+    // The enum is texture image indices
+    enum TextureImages {
+        Vulkan
+    }; inline static uts::vec<UPixmap> texture_images = {
+        UPixmap(UFile("AzLauncher/vulkan.png"))
     };
 };
 
@@ -39,6 +39,6 @@ auto render_objects([[maybe_unused]] UApplication& application) -> URenderScene 
 }
 
 auto main() -> int {
-    ApplicationSetup::initialize();
-    return ApplicationSetup::execute(render_objects, UApplication::TickTimer());
+    ApplicationSetup::initialize(render_objects, Resources::texture_images);
+    return ApplicationSetup::execute(UApplication::TickTimer());
 }
