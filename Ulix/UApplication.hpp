@@ -10,7 +10,7 @@
 #include <__UInsideImpl/__VulkanShaderDataClasses.hpp>
 #include <__UInsideImpl/__VulkanAlgorithm.hpp>
 #include <__UInsideImpl/__VulkanRequirements.hpp>
-#include <__UClassDeclarations/__UApplication.hpp>
+#include <__UClassDecl/__UApplication.hpp>
 #include <URect.hpp>
 #include <ULogger.hpp>
 #include <UColor.hpp>
