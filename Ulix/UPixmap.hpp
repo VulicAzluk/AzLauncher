@@ -2,7 +2,6 @@
 
 #include <UFile.hpp>
 #include <ULogger.hpp>
-#include <UMacros.hpp>
 #include <URect.hpp>
 #include <UTypes.hpp>
 #include <vector>
@@ -61,7 +60,7 @@ class UPixmap {
         }
 
     public:
-        forceinline auto get_rect() const -> URect { return URect(0, 0, texture_width, texture_height); }
-        forceinline auto get_pixel_size() const -> uts::u64 { return texture_size; }
-        forceinline auto get_pixels() const -> const std::vector<uts::u8> { return texture_pixels; }
+        auto get_rect() const -> URect { return URect(0, 0, texture_width, texture_height); }
+        auto get_pixel_size() const -> uts::u64 { return texture_size; }
+        auto get_pixels() const -> const std::vector<uts::u8> { return texture_pixels; }
 };

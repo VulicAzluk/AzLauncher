@@ -4,7 +4,6 @@
 #include <UAnchor.hpp>
 #include <URect.hpp>
 #include <UColor.hpp>
-#include <UMacros.hpp>
 
 
 class UObject {
@@ -35,7 +34,7 @@ class UObject {
         UObject() = default;
 
     public:
-        forceinline auto with_fill_color(const UAnchor anchor, const UColor& color) -> UObject& {
+        auto with_fill_color(const UAnchor anchor, const UColor& color) -> UObject& {
             switch (anchor) {
                 case UAnchor::TopLeft: top_left_color = color; break;
                 case UAnchor::TopRight: top_right_color = color; break;
@@ -52,7 +51,7 @@ class UObject {
             return *this;
         }
 
-        forceinline auto with_border_color(const UAnchor anchor, const UColor& color) -> UObject& {
+        auto with_border_color(const UAnchor anchor, const UColor& color) -> UObject& {
             switch (anchor) {
                 case UAnchor::TopLeft: top_left_border_color = color; break;
                 case UAnchor::TopRight: top_right_border_color = color; break;
@@ -69,7 +68,7 @@ class UObject {
             return *this;
         }
 
-        forceinline auto with_corner_radius(const UAnchor anchor, uts::f32 radius) -> UObject& {
+        auto with_corner_radius(const UAnchor anchor, uts::f32 radius) -> UObject& {
             switch (anchor) {
                 case UAnchor::TopLeft: top_left_corner_radius = radius; break;
                 case UAnchor::TopRight: top_right_corner_radius = radius; break;
@@ -86,7 +85,7 @@ class UObject {
             return *this;
         }
 
-        forceinline auto with_border_width(const UAnchor anchor, uts::f32 width) -> UObject& {
+        auto with_border_width(const UAnchor anchor, uts::f32 width) -> UObject& {
             switch (anchor) {
                 case UAnchor::TopLeft: top_left_border_width = width; break;
                 case UAnchor::TopRight: top_right_border_width = width; break;
@@ -103,17 +102,17 @@ class UObject {
             return *this;
         }
 
-        forceinline auto with_rect(const URect& rect) -> UObject& {
+        auto with_rect(const URect& rect) -> UObject& {
             this->rect = rect;
             return *this;
         }
 
-        forceinline auto with_z_index(uts::f32 index) -> UObject& {
+        auto with_z_index(uts::f32 index) -> UObject& {
             z_index = index;
             return *this;
         }
 
-        forceinline auto with_object(UObject& object) -> UObject& {
+        auto with_object(UObject& object) -> UObject& {
             object.with_rect(object.get_rect().create_with_position(
                 object.get_rect().get_x() + rect.get_x(),
                 object.get_rect().get_y() + rect.get_y()));
@@ -121,34 +120,34 @@ class UObject {
             return *this;
         }
 
-        forceinline auto with_texture_image(const UPixmap& image_pixmap) -> UObject& {
+        auto with_texture_image(const UPixmap& image_pixmap) -> UObject& {
             texture_image_pixmap = image_pixmap;
             return *this;
         }
 
     public:
-        forceinline auto get_top_left_color() const -> const UColor& { return top_left_color; }
-        forceinline auto get_top_right_color() const -> const UColor& { return top_right_color; }
-        forceinline auto get_bottom_left_color() const -> const UColor& { return bottom_left_color; }
-        forceinline auto get_bottom_right_color() const -> const UColor& { return bottom_right_color; }
+        auto get_top_left_color() const -> const UColor& { return top_left_color; }
+        auto get_top_right_color() const -> const UColor& { return top_right_color; }
+        auto get_bottom_left_color() const -> const UColor& { return bottom_left_color; }
+        auto get_bottom_right_color() const -> const UColor& { return bottom_right_color; }
 
-        forceinline auto get_top_left_border_color() const -> const UColor& { return top_left_border_color; }
-        forceinline auto get_top_right_border_color() const -> const UColor& { return top_right_border_color; }
-        forceinline auto get_bottom_left_border_color() const -> const UColor& { return bottom_left_border_color; }
-        forceinline auto get_bottom_right_border_color() const -> const UColor& { return bottom_right_border_color; }
+        auto get_top_left_border_color() const -> const UColor& { return top_left_border_color; }
+        auto get_top_right_border_color() const -> const UColor& { return top_right_border_color; }
+        auto get_bottom_left_border_color() const -> const UColor& { return bottom_left_border_color; }
+        auto get_bottom_right_border_color() const -> const UColor& { return bottom_right_border_color; }
 
-        forceinline auto get_top_left_corner_radius() const -> uts::f32 { return top_left_corner_radius; }
-        forceinline auto get_top_right_corner_radius() const -> uts::f32 { return top_right_corner_radius; }
-        forceinline auto get_bottom_left_corner_radius() const -> uts::f32 { return bottom_left_corner_radius; }
-        forceinline auto get_bottom_right_corner_radius() const -> uts::f32 { return bottom_right_corner_radius; }
+        auto get_top_left_corner_radius() const -> uts::f32 { return top_left_corner_radius; }
+        auto get_top_right_corner_radius() const -> uts::f32 { return top_right_corner_radius; }
+        auto get_bottom_left_corner_radius() const -> uts::f32 { return bottom_left_corner_radius; }
+        auto get_bottom_right_corner_radius() const -> uts::f32 { return bottom_right_corner_radius; }
 
-        forceinline auto get_top_left_border_width() const -> uts::f32 { return top_left_border_width; }
-        forceinline auto get_top_right_border_width() const -> uts::f32 { return top_right_border_width; }
-        forceinline auto get_bottom_left_border_width() const -> uts::f32 { return bottom_left_border_width; }
-        forceinline auto get_bottom_right_border_width() const -> uts::f32 { return bottom_right_border_width; }
+        auto get_top_left_border_width() const -> uts::f32 { return top_left_border_width; }
+        auto get_top_right_border_width() const -> uts::f32 { return top_right_border_width; }
+        auto get_bottom_left_border_width() const -> uts::f32 { return bottom_left_border_width; }
+        auto get_bottom_right_border_width() const -> uts::f32 { return bottom_right_border_width; }
 
-        forceinline auto get_rect() const -> const URect& { return rect; }
-        forceinline auto get_z_index() const -> uts::f32 { return z_index; }
-        forceinline auto get_objects() const -> std::vector<UObject> { return objects; }
-        forceinline auto get_texture_image() const -> const UPixmap& { return texture_image_pixmap; }
+        auto get_rect() const -> const URect& { return rect; }
+        auto get_z_index() const -> uts::f32 { return z_index; }
+        auto get_objects() const -> std::vector<UObject> { return objects; }
+        auto get_texture_image() const -> const UPixmap& { return texture_image_pixmap; }
 };
