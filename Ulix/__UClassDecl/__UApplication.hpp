@@ -1,5 +1,7 @@
 #pragma once
 
+#include "UPixmap.hpp"
+#include "vulkan/vulkan_core.h"
 #include <UApplicationInfo.hpp>
 #include <URenderInfo.hpp>
 #include <UWindowInfo.hpp>
@@ -29,7 +31,7 @@ class UApplication {
 
     public:
         auto set_tick_timer(const TickTimer& timer) -> void;
-        auto emit_dirty() -> void;
+        auto dirtied() -> void;
 
     private:
         UINT window_dpi;
@@ -42,18 +44,18 @@ class UApplication {
         auto create_window(const UWindowInfo& window_info) -> void;
 
     public:
-        auto window_titled() const -> bool;
-        auto window_resizable() const -> bool;
-        auto get_window_dpi() const -> UINT;
-        auto execute() -> int;
-        auto show_window() -> void;
-        auto hide_window() -> void;
-        auto close_window() -> void;
-        auto get_window_rect() -> URect;
-        auto set_window_rect(const URect& rect) -> void;
-        auto add_attribute(UWindowAttribute attribute) -> void;
-        auto remove_attribute(UWindowAttribute attribute) -> void;
-        static auto initialize() -> void;
+        auto titled() const -> bool;
+        auto resizable() const -> bool;
+        auto dpi() const -> UINT;
+        auto exec() -> int;
+        auto show() -> void;
+        auto hide() -> void;
+        auto exit() -> void;
+        auto rect() -> URect;
+        auto rected(const URect& rect) -> void;
+        auto addattr(UWindowAttribute attribute) -> void;
+        auto rmattr(UWindowAttribute attribute) -> void;
+        static auto init() -> void;
 
     private:
         VkInstance vulkan_instance;
@@ -82,8 +84,15 @@ class UApplication {
         __uii::vkclses::Buffer staging_buffer;
         __uii::vkclses::Buffer vertex_buffer;
         __uii::vkclses::Buffer index_buffer;
+        VkDescriptorSetLayout descriptor_set_layout;
+        uts::vec<UPixmap> texture_image_pixmaps;
+        bool enabled_debug = false;
+        VkDescriptorPool descriptor_pool;
+        uts::vec<VkDescriptorSet> descriptor_sets;
+        uts::vec<VkImage> texture_images;
+        VkDeviceMemory texture_image_memory;
 
-        auto create_vulkan_objects(const UApplicationInfo& application_info, const RenderCallback& render_callback) -> void;
+        auto create_vulkan_objects(const UApplicationInfo& application_info, const URenderInfo& render_info) -> void;
         auto destroy_vulkan_objects() -> void;
         auto record_command_buffer(VkCommandBuffer command_buffer, uts::u32 image_index) -> void;
         auto draw_frame() -> void;
@@ -93,7 +102,6 @@ class UApplication {
         auto destroy_debug_utils_messenger() -> void;
         auto populate_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT& debug_utils_messenger_create_info) -> void;
         auto select_physical_device() -> void;
-        auto get_device_score(const __uii::vkclses::PhysicalDeviceInfos& device_infos) -> uts::u32;
         auto create_logical_device() -> void;
         auto create_window_surface() -> void;
         auto create_swapchain() -> void;
@@ -113,6 +121,11 @@ class UApplication {
         auto create_vertex_buffer() -> void;
         auto create_index_buffer() -> void;
         auto update_object_buffers() -> void;
+        auto create_descriptor_set_layout() -> void;
+        auto create_descriptor_pool() -> void;
+        auto create_descriptor_set() -> void;
+        auto create_texture_images() -> void;
+        auto create_texture_image(uts::size index) -> VkMemoryRequirements;
 
     private:
         static auto WINAPI window_process(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) -> LRESULT;

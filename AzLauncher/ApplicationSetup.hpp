@@ -51,25 +51,25 @@ namespace ApplicationSetup {
     inline UApplicationInfo application_info;
     inline URenderInfo render_info;
 
-    inline void initialize(UApplication::RenderCallback render_callback, uts::vec<UPixmap> texture_images) {
-        UApplication::initialize();
+    inline void init(UApplication::RenderCallback render_callback, uts::vec<UPixmap> texture_images) {
+        UApplication::init();
 
         window_info = UWindowInfo("AzLauncher", "AzLauncherWindowClass")
-            .without_attribute(UWindowAttribute::Titled)
-            .with_initial_rect(UWinScreen::get_rect().create_with_percent_of_width(0.8, 0.625));
+            .unattr(UWindowAttribute::Titled)
+            .rect(UWinScreen::get_rect().create_with_percent_of_width(0.8, 0.625));
         application_info = UApplicationInfo("AzLauncher", (get_cache_path() / "cache.bin").string())
-            .with_version(1, 0, 0)
-            .with_vulkan_debug(enabled_vulkan_debug);
+            .version(1, 0, 0)
+            .vkdbg(enabled_vulkan_debug);
         render_info = URenderInfo(render_callback)
-            .with_texture_images(texture_images);
+            .textures(texture_images);
     }
 
-    inline int execute(UApplication::TickTimer tick_timer) {
+    inline int exec(UApplication::TickTimer tick_timer) {
         UApplication application = UApplication(application_info, window_info, render_info);
-        application.set_window_rect(UWinScreen::get_rect().create_center_rect(application.get_window_rect()));
+        application.rected(UWinScreen::get_rect().create_center_rect(application.rect()));
         application.set_tick_timer(tick_timer);
 
-        application.show_window();
-        return application.execute();
+        application.show();
+        return application.exec();
     }
 }

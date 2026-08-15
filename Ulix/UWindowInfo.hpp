@@ -20,19 +20,19 @@ public:
         initial_window_rect(0, 0, 800, 600)
     {}
 
-    inline auto with_initial_rect(const URect& rect) -> UWindowInfo& {
-        initial_window_rect = rect;
+    inline auto rect(const URect& rec) -> UWindowInfo& {
+        initial_window_rect = rec;
 
         return *this;
     }
 
-    inline auto with_attribute(UWindowAttribute attribute) -> UWindowInfo& {
+    inline auto attr(UWindowAttribute attribute) -> UWindowInfo& {
         window_attributes |= attribute;
 
         return *this;
     }
 
-    inline auto without_attribute(UWindowAttribute attribute) -> UWindowInfo& {
+    inline auto unattr(UWindowAttribute attribute) -> UWindowInfo& {
         window_attributes &= ~attribute;
 
         return *this;

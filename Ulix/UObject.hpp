@@ -24,7 +24,7 @@ class UObject {
         uts::f32 top_right_border_width = 1.0f;
         uts::f32 bottom_left_border_width = 1.0f;
         uts::f32 bottom_right_border_width = 1.0f;
-        URect rect = URect(100, 100, 200, 200);
+        URect rec = URect(100, 100, 200, 200);
         uts::f32 z_index = 0.0f;
 
         std::vector<UObject> objects;
@@ -34,7 +34,7 @@ class UObject {
         UObject() = default;
 
     public:
-        auto with_fill_color(const UAnchor anchor, const UColor& color) -> UObject& {
+        inline auto fill(const UAnchor anchor, const UColor& color) -> UObject& {
             switch (anchor) {
                 case UAnchor::TopLeft: top_left_color = color; break;
                 case UAnchor::TopRight: top_right_color = color; break;
@@ -51,7 +51,7 @@ class UObject {
             return *this;
         }
 
-        auto with_border_color(const UAnchor anchor, const UColor& color) -> UObject& {
+        inline auto border(const UAnchor anchor, const UColor& color) -> UObject& {
             switch (anchor) {
                 case UAnchor::TopLeft: top_left_border_color = color; break;
                 case UAnchor::TopRight: top_right_border_color = color; break;
@@ -68,7 +68,7 @@ class UObject {
             return *this;
         }
 
-        auto with_corner_radius(const UAnchor anchor, uts::f32 radius) -> UObject& {
+        inline auto corner(const UAnchor anchor, uts::f32 radius) -> UObject& {
             switch (anchor) {
                 case UAnchor::TopLeft: top_left_corner_radius = radius; break;
                 case UAnchor::TopRight: top_right_corner_radius = radius; break;
@@ -85,7 +85,7 @@ class UObject {
             return *this;
         }
 
-        auto with_border_width(const UAnchor anchor, uts::f32 width) -> UObject& {
+        inline auto border(const UAnchor anchor, uts::f32 width) -> UObject& {
             switch (anchor) {
                 case UAnchor::TopLeft: top_left_border_width = width; break;
                 case UAnchor::TopRight: top_right_border_width = width; break;
@@ -102,25 +102,25 @@ class UObject {
             return *this;
         }
 
-        auto with_rect(const URect& rect) -> UObject& {
-            this->rect = rect;
+        auto rect(const URect& rec) -> UObject& {
+            this->rec = rec;
             return *this;
         }
 
-        auto with_z_index(uts::f32 index) -> UObject& {
+        auto zindex(uts::f32 index) -> UObject& {
             z_index = index;
             return *this;
         }
 
-        auto with_object(UObject& object) -> UObject& {
-            object.with_rect(object.get_rect().create_with_position(
-                object.get_rect().get_x() + rect.get_x(),
-                object.get_rect().get_y() + rect.get_y()));
+        auto child(UObject& object) -> UObject& {
+            object.rect(object.get_rect().create_with_position(
+                object.get_rect().get_x() + rec.get_x(),
+                object.get_rect().get_y() + rec.get_y()));
             objects.push_back(object);
             return *this;
         }
 
-        auto with_texture_image(const UPixmap& image_pixmap) -> UObject& {
+        auto texture(const UPixmap& image_pixmap) -> UObject& {
             texture_image_pixmap = image_pixmap;
             return *this;
         }
@@ -146,7 +146,7 @@ class UObject {
         auto get_bottom_left_border_width() const -> uts::f32 { return bottom_left_border_width; }
         auto get_bottom_right_border_width() const -> uts::f32 { return bottom_right_border_width; }
 
-        auto get_rect() const -> const URect& { return rect; }
+        auto get_rect() const -> const URect& { return rec; }
         auto get_z_index() const -> uts::f32 { return z_index; }
         auto get_objects() const -> std::vector<UObject> { return objects; }
         auto get_texture_image() const -> const UPixmap& { return texture_image_pixmap; }

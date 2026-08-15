@@ -1,8 +1,11 @@
 #pragma once
 
+#include "vulkan/vulkan_core.h"
 #include <URenderInfo.hpp>
 #include <UTimer.hpp>
 #include <URenderScene.hpp>
+#include <cassert>
+#include <print>
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -108,11 +111,11 @@ inline auto UApplication::update_scene_objects() -> void {
 }
 
 inline auto UApplication::set_tick_timer(const TickTimer& timer) -> void { this->tick_timer = timer; }
-inline auto UApplication::emit_dirty() -> void { render_dirty = true; }
+inline auto UApplication::dirtied() -> void { render_dirty = true; }
 
-inline auto UApplication::window_titled() const -> bool { return window_titled_state; }
-inline auto UApplication::window_resizable() const -> bool { return window_resizable_state; }
-inline auto UApplication::get_window_dpi() const -> UINT { return window_dpi; }
+inline auto UApplication::titled() const -> bool { return window_titled_state; }
+inline auto UApplication::resizable() const -> bool { return window_resizable_state; }
+inline auto UApplication::dpi() const -> UINT { return window_dpi; }
 
 inline auto UApplication::window_process(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) -> LRESULT {
     switch (message) {
@@ -131,11 +134,11 @@ inline auto UApplication::window_process(HWND hwnd, UINT message, WPARAM wparam,
         } case WM_NCHITTEST: {
             auto* application = reinterpret_cast<UApplication*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
             if (!application) return DefWindowProcW(hwnd, message, wparam, lparam);
-            if (!application->window_resizable() || IsZoomed(hwnd)) return HTCLIENT;
+            if (!application->resizable() || IsZoomed(hwnd)) return HTCLIENT;
 
             POINT cursor_position; GetCursorPos(&cursor_position);
             RECT window_rect; GetWindowRect(hwnd, &window_rect);
-            int frame = GetSystemMetricsForDpi(SM_CYFRAME, application->get_window_dpi());
+            int frame = GetSystemMetricsForDpi(SM_CYFRAME, application->dpi());
 
             // Top edge
             if (cursor_position.y >= window_rect.top - frame && cursor_position.y < window_rect.top + frame)
@@ -144,10 +147,10 @@ inline auto UApplication::window_process(HWND hwnd, UINT message, WPARAM wparam,
             return DefWindowProcW(hwnd, message, wparam, lparam); // Another edges and "corner" cases
         } case WM_NCCALCSIZE: {
             auto* application = reinterpret_cast<UApplication*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
-            if (!application || application->window_titled()) return DefWindowProcW(hwnd, message, wparam, lparam);
+            if (!application || application->titled()) return DefWindowProcW(hwnd, message, wparam, lparam);
 
-            int caption_height = GetSystemMetricsForDpi(SM_CYCAPTION, application->get_window_dpi());
-            int border_size = GetSystemMetricsForDpi(SM_CXPADDEDBORDER, application->get_window_dpi());
+            int caption_height = GetSystemMetricsForDpi(SM_CYCAPTION, application->dpi());
+            int border_size = GetSystemMetricsForDpi(SM_CXPADDEDBORDER, application->dpi());
 
             /* Move the top of the client area to the top of the window
                 to cover the titlebar */
@@ -248,11 +251,11 @@ inline auto UApplication::create_window(const UWindowInfo& window_info) -> void 
 
 inline UApplication::UApplication(const UApplicationInfo& application_info, const UWindowInfo& window_info, const URenderInfo& render_info) {
     create_window(window_info);
-    create_vulkan_objects(application_info, reinterpret_cast<RenderCallback>(render_info.get_render_callback()));
+    create_vulkan_objects(application_info, render_info);
 }
 inline UApplication::~UApplication() { destroy_vulkan_objects(); }
 
-inline auto UApplication::execute() -> int {
+inline auto UApplication::exec() -> int {
     MSG msg{}; while (true) {
         if (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
             if (msg.message == WM_QUIT) return msg.wParam;
@@ -263,17 +266,17 @@ inline auto UApplication::execute() -> int {
     return 0;
 }
 
-inline auto UApplication::show_window() -> void { ShowWindow(window_hwnd, SW_SHOW); UpdateWindow(window_hwnd); }
-inline auto UApplication::hide_window() -> void { ShowWindow(window_hwnd, SW_HIDE); UpdateWindow(window_hwnd); }
+inline auto UApplication::show() -> void { ShowWindow(window_hwnd, SW_SHOW); UpdateWindow(window_hwnd); }
+inline auto UApplication::hide() -> void { ShowWindow(window_hwnd, SW_HIDE); UpdateWindow(window_hwnd); }
 
-inline auto UApplication::get_window_rect() -> URect {
+inline auto UApplication::rect() -> URect {
     RECT window_rect{}; GetWindowRect(window_hwnd, &window_rect);
     return URect(window_rect.left, window_rect.top,
                  UWin32Function::physical_pixels_to_logical(window_rect.right - window_rect.left),
                  UWin32Function::physical_pixels_to_logical(window_rect.bottom - window_rect.top));
 }
 
-inline auto UApplication::set_window_rect(const URect& rect) -> void {
+inline auto UApplication::rected(const URect& rect) -> void {
     uts::i32 physical_x = UWin32Function::logical_pixels_to_physical(rect.get_x());
     uts::i32 physical_y = UWin32Function::logical_pixels_to_physical(rect.get_y());
     uts::u32 physical_width = UWin32Function::logical_pixels_to_physical(rect.get_width());
@@ -282,11 +285,11 @@ inline auto UApplication::set_window_rect(const URect& rect) -> void {
     MoveWindow(window_hwnd, physical_x, physical_y, physical_width, physical_height, TRUE);
 }
 
-inline auto UApplication::close_window() -> void {
+inline auto UApplication::exit() -> void {
     PostMessageW(window_hwnd, WM_CLOSE, 0, 0);
 }
 
-inline auto UApplication::add_attribute(UWindowAttribute attribute) -> void {
+inline auto UApplication::addattr(UWindowAttribute attribute) -> void {
     switch (attribute) {
         case UWindowAttribute::Resizable: {
             window_resizable_state = true;
@@ -306,15 +309,15 @@ inline auto UApplication::add_attribute(UWindowAttribute attribute) -> void {
             SetWindowLongPtrW(window_hwnd, GWL_STYLE, style);
             break;
         } case UWindowAttribute::Normal: {
-            add_attribute(UWindowAttribute::Resizable);
-            add_attribute(UWindowAttribute::Titled);
-            add_attribute(UWindowAttribute::Bordered);
+            addattr(UWindowAttribute::Resizable);
+            addattr(UWindowAttribute::Titled);
+            addattr(UWindowAttribute::Bordered);
         }
     }
     SetWindowPos(window_hwnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED); // Update window
 }
 
-inline auto UApplication::remove_attribute(UWindowAttribute attribute) -> void {
+inline auto UApplication::rmattr(UWindowAttribute attribute) -> void {
     switch (attribute) {
         case UWindowAttribute::Resizable: {
             window_resizable_state = false;
@@ -335,16 +338,16 @@ inline auto UApplication::remove_attribute(UWindowAttribute attribute) -> void {
             SetWindowLongPtrW(window_hwnd, GWL_STYLE, style);
             break;
         } case UWindowAttribute::Normal: {
-            remove_attribute(UWindowAttribute::Resizable);
-            remove_attribute(UWindowAttribute::Titled);
-            remove_attribute(UWindowAttribute::Bordered);
+            rmattr(UWindowAttribute::Resizable);
+            rmattr(UWindowAttribute::Titled);
+            rmattr(UWindowAttribute::Bordered);
         }
     }
     // Update window
     SetWindowPos(window_hwnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
 }
 
-inline auto UApplication::initialize() -> void {
+inline auto UApplication::init() -> void {
     if (!SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2))
         ULogger::ulixerr("Failed to set DPI awareness, error code: {}", GetLastError());
 }
@@ -452,7 +455,7 @@ inline auto UApplication::select_physical_device() -> void {
     for (const auto& device : physical_devices) {
         __uii::vkclses::PhysicalDeviceInfos device_infos = __uii::vkclses::PhysicalDeviceInfos(device, window_surface);
         if (!device_infos.is_suitable()) continue;
-        uts::u32 score = get_device_score(device_infos);
+        uts::u32 score = __uii::vkalg::get_device_score(device_infos);
         if (device_infos.match_gpu_type(VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) && score > last_discrete_gpu_score) {
             last_discrete_gpu_score = score;
             physical_device = device;
@@ -468,22 +471,6 @@ inline auto UApplication::select_physical_device() -> void {
     if (alternative_device == VK_NULL_HANDLE) ULogger::ulixerr("Failed to pick a suitable GPU");
     physical_device = alternative_device;
     physical_device_infos = alternative_device_infos;
-}
-
-inline auto UApplication::get_device_score(const __uii::vkclses::PhysicalDeviceInfos& device_infos) -> uts::u32 {
-    uts::u64 device_local_bytes = 0;
-    for (uts::u32 index = 0; index < device_infos.memory_properties.memoryHeapCount; ++index) {
-        if (!(device_infos.memory_properties.memoryHeaps[index].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT)) continue;
-        device_local_bytes += device_infos.memory_properties.memoryHeaps[index].size;
-    }
-
-    return device_infos.properties.limits.maxImageDimension2D +
-        device_infos.properties.limits.maxUniformBufferRange / (1 << 20) +
-        device_infos.properties.limits.maxComputeWorkGroupCount[0] / 65536 +
-        device_infos.properties.limits.maxComputeWorkGroupInvocations / 1024 +
-        device_infos.properties.limits.maxBoundDescriptorSets +
-        device_infos.properties.limits.maxColorAttachments +
-        device_local_bytes / (1ULL << 30);
 }
 
 inline auto UApplication::create_logical_device() -> void {
@@ -717,6 +704,10 @@ inline auto UApplication::create_graphics_pipeline(const UApplicationInfo& appli
     pipeline_layout_create_info.pSetLayouts = VK_NULL_HANDLE;
     pipeline_layout_create_info.pushConstantRangeCount = 1;
     pipeline_layout_create_info.pPushConstantRanges = &push_constant_range;
+    /* TODO
+        pipeline_layout_create_info.setLayoutCount = 1;
+        pipeline_layout_create_info.pSetLayouts = &descriptor_set_layout;
+    */
     if (vkCreatePipelineLayout(logical_device, &pipeline_layout_create_info, VK_NULL_HANDLE, &pipeline_layout) != VK_SUCCESS)
         ULogger::ulixerr("Failed to create pipeline layout");
 
@@ -920,52 +911,6 @@ inline auto UApplication::update_object_buffers() -> void {
     staging_buffer.copy_buffer_to(index_buffer, logical_device, command_pool, device_queues.graphics_queue, render_indices.size() * sizeof(uts::u32));
 }
 
-inline auto UApplication::create_vulkan_objects(const UApplicationInfo& application_info, const RenderCallback& render_callback) -> void {
-    this->render_callback = render_callback;
-
-    create_vulkan_instance(application_info);
-    create_debug_messenger(application_info);
-    create_window_surface();
-    select_physical_device();
-    create_logical_device();
-    create_swapchain();
-    create_swapchain_image_views();
-    create_render_pass();
-    create_graphics_pipeline(application_info);
-    create_swapchain_frame_buffers();
-    create_command_pool();
-    update_push_constant();
-    update_scene_objects();
-    create_staging_buffer();
-    create_vertex_buffer();
-    create_index_buffer();
-    update_object_buffers();
-    create_command_buffers();
-    create_sync_objects();
-}
-
-inline auto UApplication::destroy_vulkan_objects() -> void {
-    vkDeviceWaitIdle(logical_device);
-
-    destroy_swapchain();
-    index_buffer.release(logical_device);
-    vertex_buffer.release(logical_device);
-    staging_buffer.release(logical_device);
-    for (uts::size index = 0; index < max_frames_in_flight; index++) {
-        vkDestroySemaphore(logical_device, image_available_semaphores[index], VK_NULL_HANDLE);
-        vkDestroySemaphore(logical_device, render_finished_semaphores[index], VK_NULL_HANDLE);
-        vkDestroyFence(logical_device, in_flight_fences[index], VK_NULL_HANDLE);
-    }
-    vkDestroyCommandPool(logical_device, command_pool, VK_NULL_HANDLE);
-    vkDestroyPipeline(logical_device, graphics_pipeline, VK_NULL_HANDLE);
-    vkDestroyPipelineLayout(logical_device, pipeline_layout, VK_NULL_HANDLE);
-    vkDestroyRenderPass(logical_device, render_pass, VK_NULL_HANDLE);
-    vkDestroyDevice(logical_device, VK_NULL_HANDLE);
-    destroy_debug_utils_messenger();
-    vkDestroySurfaceKHR(vulkan_instance, window_surface, VK_NULL_HANDLE);
-    vkDestroyInstance(vulkan_instance, VK_NULL_HANDLE);
-}
-
 inline auto UApplication::record_command_buffer(VkCommandBuffer command_buffer, uts::u32 image_index) -> void {
     VkCommandBufferBeginInfo command_buffer_begin_info{};
     command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -1004,10 +949,13 @@ inline auto UApplication::record_command_buffer(VkCommandBuffer command_buffer, 
     vkCmdBindVertexBuffers(command_buffer, 0, 1, &vertex_buffer.buffer, offsets);
     vkCmdBindIndexBuffer(command_buffer, index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
+    /* TODO
+        vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &descriptor_sets[current_frame], 0, nullptr);
+    */
     vkCmdPushConstants(command_buffer, pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(__uii::vsdces::PushConstant), &push_constant);
-
     vkCmdDrawIndexed(command_buffer, static_cast<uts::u32>(render_indices.size()), 1, 0, 0, 0);
     vkCmdEndRenderPass(command_buffer);
+    
     if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS)
         ULogger::ulixerr("Failed to end command buffer");
 }
@@ -1056,4 +1004,191 @@ inline auto UApplication::draw_frame() -> void {
 
     current_frame = (current_frame + 1) % max_frames_in_flight;
     tick_timer.update(*this);
+}
+
+inline auto UApplication::create_descriptor_set_layout() -> void {
+    VkDescriptorSetLayoutBinding descriptor_set_layout_binding{};
+    descriptor_set_layout_binding.binding = 0;
+    descriptor_set_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    descriptor_set_layout_binding.descriptorCount = static_cast<uts::u32>(texture_image_pixmaps.size());
+    descriptor_set_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    descriptor_set_layout_binding.pImmutableSamplers = nullptr;
+
+    VkDescriptorSetLayoutCreateInfo descriptor_set_layout_create_info{};
+    descriptor_set_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    descriptor_set_layout_create_info.bindingCount = 1;
+    descriptor_set_layout_create_info.pBindings = &descriptor_set_layout_binding;
+    if (vkCreateDescriptorSetLayout(logical_device, &descriptor_set_layout_create_info, nullptr, &descriptor_set_layout))
+        ULogger::ulixerr("Failed to create descriptor set layout");
+}
+
+inline auto UApplication::create_descriptor_pool() -> void {
+    VkDescriptorPoolSize descriptor_pool_size{};
+    descriptor_pool_size.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    descriptor_pool_size.descriptorCount = static_cast<uts::u32>(texture_image_pixmaps.size()) * static_cast<uts::u32>(max_frames_in_flight);
+    
+    VkDescriptorPoolCreateInfo descriptor_pool_create_info{};
+    descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    descriptor_pool_create_info.poolSizeCount = 1;
+    descriptor_pool_create_info.pPoolSizes = &descriptor_pool_size;
+    descriptor_pool_create_info.maxSets = max_frames_in_flight;
+    if (vkCreateDescriptorPool(logical_device, &descriptor_pool_create_info, nullptr, &descriptor_pool))
+        ULogger::ulixerr("Failed to create descriptor pool");
+}
+
+inline auto UApplication::create_descriptor_set() -> void {
+    std::vector<VkDescriptorSetLayout> layouts(max_frames_in_flight, descriptor_set_layout);
+    VkDescriptorSetAllocateInfo descriptor_set_allocate_info{};
+    descriptor_set_allocate_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    descriptor_set_allocate_info.descriptorPool = descriptor_pool;
+    descriptor_set_allocate_info.descriptorSetCount = static_cast<std::uint32_t>(max_frames_in_flight);
+    descriptor_set_allocate_info.pSetLayouts = layouts.data();
+
+    descriptor_sets.resize(max_frames_in_flight);
+    if (vkAllocateDescriptorSets(logical_device, &descriptor_set_allocate_info, descriptor_sets.data()))
+        ULogger::ulixerr("Failed to allocate descriptor sets");
+
+    for (const auto& descriptor_set : descriptor_sets) {
+        VkWriteDescriptorSet descriptor_set_write{};
+        descriptor_set_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptor_set_write.dstSet = descriptor_set;
+        descriptor_set_write.dstBinding = 0;
+        descriptor_set_write.dstArrayElement = 0;
+        descriptor_set_write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptor_set_write.descriptorCount = 1;
+        descriptor_set_write.pImageInfo = nullptr;
+        vkUpdateDescriptorSets(logical_device, 1, &descriptor_set_write, 0, nullptr);
+    }
+}
+
+inline auto UApplication::create_texture_images() -> void {
+    texture_images.resize(texture_image_pixmaps.size());
+
+    uts::vec<VkDeviceSize> offsets(texture_image_pixmaps.size());
+    VkDeviceSize current_offset = 0;
+    uts::u32 memory_type_bits;
+    
+    for (uts::size index = 0; index < texture_image_pixmaps.size(); ++index) {
+        VkMemoryRequirements memory_requirements = create_texture_image(index);
+        current_offset = (current_offset + memory_requirements.alignment - 1) & ~(memory_requirements.alignment - 1);
+        offsets[index] = current_offset;
+        current_offset += memory_requirements.size;
+
+        if (!index) memory_type_bits = memory_requirements.memoryTypeBits;
+        else memory_type_bits &= memory_requirements.memoryTypeBits;
+    }
+
+    VkMemoryAllocateInfo memory_allocate_info{};
+    memory_allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    memory_allocate_info.allocationSize = current_offset;
+    memory_allocate_info.memoryTypeIndex = __uii::vkalg::find_memory_type(physical_device, memory_type_bits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    if (vkAllocateMemory(logical_device, &memory_allocate_info, nullptr, &texture_image_memory))
+        ULogger::ulixerr("Failed to allocate texture image memory");
+
+    
+    for (uts::size index = 0; index < texture_image_pixmaps.size(); index++)
+        vkBindImageMemory(logical_device, texture_images[index], texture_image_memory, offsets[index]);
+    
+    VkCommandBuffer single_time_command_buffer = __uii::vkalg::start_single_time_command_buffer(logical_device, command_pool);
+    for (uts::size index = 0; index < texture_image_pixmaps.size(); index++) {
+        VkImage image = texture_images[index];
+        UPixmap pixmap = texture_image_pixmaps[index];
+        URect rect = pixmap.get_rect();
+        
+        staging_buffer.map_memory(logical_device, pixmap.get_pixels().data(), pixmap.get_pixel_size());
+        __uii::vkalg::transition_image_layout(logical_device, single_time_command_buffer, image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        __uii::vkalg::copy_buffer_to_image(logical_device, staging_buffer.buffer, single_time_command_buffer, image, rect.get_width(), rect.get_height());
+        __uii::vkalg::transition_image_layout(logical_device, single_time_command_buffer, image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    }
+    __uii::vkalg::end_single_time_command_buffer(logical_device, device_queues.graphics_queue, command_pool, single_time_command_buffer);
+}
+
+inline auto UApplication::create_texture_image(uts::size index) -> VkMemoryRequirements {
+    VkImage& texture = texture_images[index];
+    UPixmap pixmap = texture_image_pixmaps[index];
+    URect rect = pixmap.get_rect();
+    
+    VkImageCreateInfo image_create_info{};
+    image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    image_create_info.imageType = VK_IMAGE_TYPE_2D;
+    image_create_info.format = VK_FORMAT_R8G8B8A8_SRGB;
+    image_create_info.extent.width = rect.get_width();
+    image_create_info.extent.height = rect.get_height();
+    image_create_info.extent.depth = 1;
+    image_create_info.mipLevels = 1;
+    image_create_info.arrayLayers = 1;
+    image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
+    image_create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+    image_create_info.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    image_create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    if (vkCreateImage(logical_device, &image_create_info, VK_NULL_HANDLE, &texture) != VK_SUCCESS)
+        ULogger::ulixerr("Failed to create texture image");
+
+    VkMemoryRequirements memory_requirements;
+    vkGetImageMemoryRequirements(logical_device, texture, &memory_requirements);
+    return memory_requirements;
+}
+
+inline auto UApplication::destroy_vulkan_objects() -> void {
+    vkDeviceWaitIdle(logical_device);
+
+    destroy_swapchain();
+    for (const auto& image : texture_images)
+        vkDestroyImage(logical_device, image, VK_NULL_HANDLE);
+    vkFreeMemory(logical_device, texture_image_memory, VK_NULL_HANDLE);
+    /* TODO
+        vkDestroyDescriptorPool(logical_device, descriptor_pool, VK_NULL_HANDLE);
+        vkDestroyDescriptorSetLayout(logical_device, descriptor_set_layout, VK_NULL_HANDLE);
+    */
+    index_buffer.release(logical_device);
+    vertex_buffer.release(logical_device);
+    staging_buffer.release(logical_device);
+    for (uts::size index = 0; index < max_frames_in_flight; index++) {
+        vkDestroySemaphore(logical_device, image_available_semaphores[index], VK_NULL_HANDLE);
+        vkDestroySemaphore(logical_device, render_finished_semaphores[index], VK_NULL_HANDLE);
+        vkDestroyFence(logical_device, in_flight_fences[index], VK_NULL_HANDLE);
+    }
+    vkDestroyCommandPool(logical_device, command_pool, VK_NULL_HANDLE);
+    vkDestroyPipeline(logical_device, graphics_pipeline, VK_NULL_HANDLE);
+    vkDestroyPipelineLayout(logical_device, pipeline_layout, VK_NULL_HANDLE);
+    vkDestroyRenderPass(logical_device, render_pass, VK_NULL_HANDLE);
+    vkDestroyDevice(logical_device, VK_NULL_HANDLE);
+    destroy_debug_utils_messenger();
+    vkDestroySurfaceKHR(vulkan_instance, window_surface, VK_NULL_HANDLE);
+    vkDestroyInstance(vulkan_instance, VK_NULL_HANDLE);
+}
+
+inline auto UApplication::create_vulkan_objects(const UApplicationInfo& application_info, const URenderInfo& render_info) -> void {
+    this->render_callback = reinterpret_cast<RenderCallback>(render_info.get_render_callback());
+    this->texture_image_pixmaps = render_info.get_texture_images();
+    this->enabled_debug = application_info.get_enabled_vulkan_debug();
+
+    create_vulkan_instance(application_info);
+    create_debug_messenger(application_info);
+    create_window_surface();
+    select_physical_device();
+    create_logical_device();
+    create_swapchain();
+    create_swapchain_image_views();
+    create_render_pass();
+
+    /* TODO
+        create_descriptor_set_layout();
+        create_descriptor_pool();
+        create_descriptor_set();
+    */
+    
+    create_graphics_pipeline(application_info);
+    create_swapchain_frame_buffers();
+    create_command_pool();
+    update_push_constant();
+    update_scene_objects();
+    create_staging_buffer();
+    create_texture_images();
+    create_vertex_buffer();
+    create_index_buffer();
+    update_object_buffers();
+    create_command_buffers();
+    create_sync_objects();
 }

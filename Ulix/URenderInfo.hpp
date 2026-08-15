@@ -16,7 +16,7 @@ class URenderInfo {
         URenderInfo(RenderCallback render_callback): render_callback(reinterpret_cast<void*>(render_callback)) {}
 
     public:
-        inline auto with_texture_images(uts::vec<UPixmap> pixmaps) -> URenderInfo& {
+        inline auto textures(uts::vec<UPixmap> pixmaps) -> URenderInfo& {
             this->texture_images = pixmaps;
             return *this;
         }

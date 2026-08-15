@@ -13,12 +13,12 @@ class URenderScene {
         URenderScene() = default;
 
     public:
-        inline auto with_object(const UObject& object) -> URenderScene& {
+        inline auto child(const UObject& object) -> URenderScene& {
             objects.push_back(object);
             return *this;
         }
 
-        inline auto with_background_color(const UColor& color) -> URenderScene& {
+        inline auto background(const UColor& color) -> URenderScene& {
             background_color = color;
             return *this;
         }

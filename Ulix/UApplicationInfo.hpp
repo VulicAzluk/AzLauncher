@@ -19,19 +19,13 @@ class UApplicationInfo {
             enabled_vulkan_debug(true)
         {}
 
-        inline auto with_version(uts::u32 major, uts::u32 minor, uts::u32 patch) -> UApplicationInfo& {
+        inline auto version(uts::u32 major, uts::u32 minor, uts::u32 patch) -> UApplicationInfo& {
             application_version = (major << 22) | (minor << 12) | patch;
 
             return *this;
         }
 
-        inline auto without_vulkan_debug() -> UApplicationInfo& {
-            enabled_vulkan_debug = false;
-
-            return *this;
-        }
-
-        inline auto with_vulkan_debug(bool enabled = true) -> UApplicationInfo& {
+        inline auto vkdbg(bool enabled = true) -> UApplicationInfo& {
             enabled_vulkan_debug = enabled;
 
             return *this;
