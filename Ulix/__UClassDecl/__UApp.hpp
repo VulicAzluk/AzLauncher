@@ -1,24 +1,22 @@
 #pragma once
 
-#include "UPixmap.hpp"
-#include "vulkan/vulkan_core.h"
-#include <UApplicationInfo.hpp>
+#include <UAppInfo.hpp>
 #include <URenderInfo.hpp>
 #include <UWindowInfo.hpp>
 #include <__UInsideImpl/__VulkanClasses.hpp>
 #include <__UInsideImpl/__VulkanShaderDataClasses.hpp>
-#include <URenderScene.hpp>
+#include <UScene.hpp>
 #include <UTimer.hpp>
 
-class UApplication {
+class UApp {
     public:
-        using RenderCallback = URenderScene(*)(UApplication&);
-        using TickTimer = UTimer<UApplication&>;
+        using RenderCallback = UScene(*)(UApp&);
+        using TickTimer = UTimer<UApp&>;
 
     private:
         TickTimer tick_timer;
         RenderCallback render_callback;
-        URenderScene current_render_scene;
+        UScene current_render_scene;
         uts::vec<__uii::vsdces::Vertex2D> render_vertices;
         uts::vec<uts::u32> render_indices;
         __uii::vsdces::PushConstant push_constant;
@@ -30,7 +28,7 @@ class UApplication {
         auto update_scene_objects() -> void;
 
     public:
-        auto set_tick_timer(const TickTimer& timer) -> void;
+        auto set_timer(const TickTimer& timer) -> void;
         auto dirtied() -> void;
 
     private:
@@ -52,9 +50,9 @@ class UApplication {
         auto hide() -> void;
         auto exit() -> void;
         auto rect() -> URect;
-        auto rected(const URect& rect) -> void;
-        auto addattr(UWindowAttribute attribute) -> void;
-        auto rmattr(UWindowAttribute attribute) -> void;
+        auto set_rect(const URect& rect) -> void;
+        auto add_attr(UWindowAttrs attribute) -> void;
+        auto rmv_attr(UWindowAttrs attribute) -> void;
         static auto init() -> void;
 
     private:
@@ -92,13 +90,13 @@ class UApplication {
         uts::vec<VkImage> texture_images;
         VkDeviceMemory texture_image_memory;
 
-        auto create_vulkan_objects(const UApplicationInfo& application_info, const URenderInfo& render_info) -> void;
+        auto create_vulkan_objects(const UAppInfo& application_info, const URenderInfo& render_info) -> void;
         auto destroy_vulkan_objects() -> void;
         auto record_command_buffer(VkCommandBuffer command_buffer, uts::u32 image_index) -> void;
         auto draw_frame() -> void;
-        auto create_vulkan_instance(const UApplicationInfo& application_info) -> void;
+        auto create_vulkan_instance(const UAppInfo& application_info) -> void;
         auto check_validation_layer_support() -> bool;
-        auto create_debug_messenger(const UApplicationInfo& application_info) -> void;
+        auto create_debug_messenger(const UAppInfo& application_info) -> void;
         auto destroy_debug_utils_messenger() -> void;
         auto populate_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT& debug_utils_messenger_create_info) -> void;
         auto select_physical_device() -> void;
@@ -111,7 +109,7 @@ class UApplication {
         auto create_swapchain_image_views() -> void;
         auto create_shader_module(unsigned char* code, unsigned int length) -> VkShaderModule;
         auto populate_pipeline_shader_stage_create_info(VkPipelineShaderStageCreateInfo& create_info, VkShaderModule shader_module, VkShaderStageFlagBits stage) -> void;
-        auto create_graphics_pipeline(const UApplicationInfo& application_info) -> void;
+        auto create_graphics_pipeline(const UAppInfo& application_info) -> void;
         auto create_render_pass() -> void;
         auto create_swapchain_frame_buffers() -> void;
         auto create_command_pool() -> void;
@@ -132,7 +130,7 @@ class UApplication {
         static VKAPI_ATTR auto VKAPI_CALL debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity, [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT message_type, const VkDebugUtilsMessengerCallbackDataEXT* callback_data, [[maybe_unused]] auto* user_data) -> VkBool32;
 
     public:
-        inline UApplication() = default;
-        UApplication(const UApplicationInfo& application_info, const UWindowInfo& window_info, const URenderInfo& render_info);
-        ~UApplication();
+        inline UApp() = default;
+        UApp(const UAppInfo& application_info, const UWindowInfo& window_info, const URenderInfo& render_info);
+        ~UApp();
 };

@@ -113,7 +113,7 @@ class UObject {
         }
 
         auto child(UObject& object) -> UObject& {
-            object.rect(object.get_rect().create_with_position(
+            object.rect(object.get_rect().new_with_pos(
                 object.get_rect().get_x() + rec.get_x(),
                 object.get_rect().get_y() + rec.get_y()));
             objects.push_back(object);

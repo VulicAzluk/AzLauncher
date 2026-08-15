@@ -2,7 +2,7 @@
 
 #include <URenderInfo.hpp>
 #include <UTimer.hpp>
-#include <URenderScene.hpp>
+#include <UScene.hpp>
 #include <cassert>
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
@@ -11,14 +11,14 @@
 #include <__UInsideImpl/__VulkanShaderDataClasses.hpp>
 #include <__UInsideImpl/__VulkanAlgorithm.hpp>
 #include <__UInsideImpl/__VulkanRequirements.hpp>
-#include <__UClassDecl/__UApplication.hpp>
+#include <__UClassDecl/__UApp.hpp>
 #include <URect.hpp>
 #include <ULogger.hpp>
 #include <UColor.hpp>
 #include <UObject.hpp>
 #include <UWindowInfo.hpp>
-#include <UApplicationInfo.hpp>
-#include <UWin32Function.hpp>
+#include <UAppInfo.hpp>
+#include <UWin32Functions.hpp>
 #include <UTypes.hpp>
 #include <basetsd.h>
 #include <cstdint>
@@ -32,14 +32,14 @@
 #include <Shaders/vertex_shader.inl>
 
 
-inline auto UApplication::update_push_constant() -> void {
+inline auto UApp::update_push_constant() -> void {
     push_constant.projection = glm::ortho(
         0.0f, static_cast<float>(window_current_width),
         static_cast<float>(window_current_height), 0.0f,
         -1.0f, 1.0f);
 }
 
-inline auto UApplication::push_objects(uts::vec<UObject>& objects, uts::u32& render_index) -> void {
+inline auto UApp::push_objects(uts::vec<UObject>& objects, uts::u32& render_index) -> void {
     [[maybe_unused]] float window_height = static_cast<float>(window_current_height);
     std::sort(objects.begin(), objects.end(), [](const UObject& object1, const UObject& object2) -> bool { return object1.get_z_index() < object2.get_z_index(); });
     current_background_color = current_render_scene.get_background_color();
@@ -53,19 +53,19 @@ inline auto UApplication::push_objects(uts::vec<UObject>& objects, uts::u32& ren
         UColor top_right_border_color = object.get_top_right_border_color();
         UColor bottom_left_border_color = object.get_bottom_left_border_color();
         UColor bottom_right_border_color = object.get_bottom_right_border_color();
-        float top_left_corner_radius = UWin32Function::logical_pixels_to_physical(object.get_top_left_corner_radius(), window_dpi);
-        float top_right_corner_radius = UWin32Function::logical_pixels_to_physical(object.get_top_right_corner_radius(), window_dpi);
-        float bottom_left_corner_radius = UWin32Function::logical_pixels_to_physical(object.get_bottom_left_corner_radius(), window_dpi);
-        float bottom_right_corner_radius = UWin32Function::logical_pixels_to_physical(object.get_bottom_right_corner_radius(), window_dpi);
-        float top_left_border_width = UWin32Function::logical_pixels_to_physical(object.get_top_left_border_width(), window_dpi);
-        float top_right_border_width = UWin32Function::logical_pixels_to_physical(object.get_top_right_border_width(), window_dpi);
-        float bottom_left_border_width = UWin32Function::logical_pixels_to_physical(object.get_bottom_left_border_width(), window_dpi);
-        float bottom_right_border_width = UWin32Function::logical_pixels_to_physical(object.get_bottom_right_border_width(), window_dpi);
+        float top_left_corner_radius = UWin32Functions::physical_cast(object.get_top_left_corner_radius(), window_dpi);
+        float top_right_corner_radius = UWin32Functions::physical_cast(object.get_top_right_corner_radius(), window_dpi);
+        float bottom_left_corner_radius = UWin32Functions::physical_cast(object.get_bottom_left_corner_radius(), window_dpi);
+        float bottom_right_corner_radius = UWin32Functions::physical_cast(object.get_bottom_right_corner_radius(), window_dpi);
+        float top_left_border_width = UWin32Functions::physical_cast(object.get_top_left_border_width(), window_dpi);
+        float top_right_border_width = UWin32Functions::physical_cast(object.get_top_right_border_width(), window_dpi);
+        float bottom_left_border_width = UWin32Functions::physical_cast(object.get_bottom_left_border_width(), window_dpi);
+        float bottom_right_border_width = UWin32Functions::physical_cast(object.get_bottom_right_border_width(), window_dpi);
         URect rect = object.get_rect();
-        float x = UWin32Function::logical_pixels_to_physical(rect.get_x(), window_dpi);
-        float y = UWin32Function::logical_pixels_to_physical(rect.get_y(), window_dpi);
-        float width = UWin32Function::logical_pixels_to_physical(rect.get_width(), window_dpi);
-        float height = UWin32Function::logical_pixels_to_physical(rect.get_height(), window_dpi);
+        float x = UWin32Functions::physical_cast(rect.get_x(), window_dpi);
+        float y = UWin32Functions::physical_cast(rect.get_y(), window_dpi);
+        float width = UWin32Functions::physical_cast(rect.get_width(), window_dpi);
+        float height = UWin32Functions::physical_cast(rect.get_height(), window_dpi);
         glm::vec2 half_size = {width * 0.5f, height * 0.5f};
         glm::vec2 center = {x + half_size.x + 0.5f, window_height - (y + half_size.y) + 0.5f};
         glm::vec2 top_left = center - half_size;
@@ -98,7 +98,7 @@ inline auto UApplication::push_objects(uts::vec<UObject>& objects, uts::u32& ren
     }
 }
 
-inline auto UApplication::update_scene_objects() -> void {
+inline auto UApp::update_scene_objects() -> void {
     uts::u32 render_index = 0;
     render_vertices.clear();
     render_indices.clear();
@@ -108,18 +108,18 @@ inline auto UApplication::update_scene_objects() -> void {
     push_objects(objects, render_index);
 }
 
-inline auto UApplication::set_tick_timer(const TickTimer& timer) -> void { this->tick_timer = timer; }
-inline auto UApplication::dirtied() -> void { render_dirty = true; }
+inline auto UApp::set_timer(const TickTimer& timer) -> void { this->tick_timer = timer; }
+inline auto UApp::dirtied() -> void { render_dirty = true; }
 
-inline auto UApplication::titled() const -> bool { return window_titled_state; }
-inline auto UApplication::resizable() const -> bool { return window_resizable_state; }
-inline auto UApplication::dpi() const -> UINT { return window_dpi; }
+inline auto UApp::titled() const -> bool { return window_titled_state; }
+inline auto UApp::resizable() const -> bool { return window_resizable_state; }
+inline auto UApp::dpi() const -> UINT { return window_dpi; }
 
-inline auto UApplication::window_process(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) -> LRESULT {
+inline auto UApp::window_process(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) -> LRESULT {
     switch (message) {
         case WM_NCCREATE: {
             auto* create_structure = reinterpret_cast<CREATESTRUCTW*>(lparam);
-            auto* application = static_cast<UApplication*>(create_structure->lpCreateParams);
+            auto* application = static_cast<UApp*>(create_structure->lpCreateParams);
 
             SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(application));
             return DefWindowProcW(hwnd, message, wparam, lparam);
@@ -130,7 +130,7 @@ inline auto UApplication::window_process(HWND hwnd, UINT message, WPARAM wparam,
             SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(nullptr));
             return DefWindowProcW(hwnd, message, wparam, lparam);
         } case WM_NCHITTEST: {
-            auto* application = reinterpret_cast<UApplication*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+            auto* application = reinterpret_cast<UApp*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
             if (!application) return DefWindowProcW(hwnd, message, wparam, lparam);
             if (!application->resizable() || IsZoomed(hwnd)) return HTCLIENT;
 
@@ -144,7 +144,7 @@ inline auto UApplication::window_process(HWND hwnd, UINT message, WPARAM wparam,
 
             return DefWindowProcW(hwnd, message, wparam, lparam); // Another edges and "corner" cases
         } case WM_NCCALCSIZE: {
-            auto* application = reinterpret_cast<UApplication*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+            auto* application = reinterpret_cast<UApp*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
             if (!application || application->titled()) return DefWindowProcW(hwnd, message, wparam, lparam);
 
             int caption_height = GetSystemMetricsForDpi(SM_CYCAPTION, application->dpi());
@@ -157,7 +157,7 @@ inline auto UApplication::window_process(HWND hwnd, UINT message, WPARAM wparam,
 
             return DefWindowProcW(hwnd, WM_NCCALCSIZE, wparam, lparam);
         } case WM_SIZING: {
-            auto* application = reinterpret_cast<UApplication*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+            auto* application = reinterpret_cast<UApp*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
             if (!application) return DefWindowProcW(hwnd, message, wparam, lparam);
 
             RECT rect; GetClientRect(application->window_hwnd, &rect);
@@ -172,7 +172,7 @@ inline auto UApplication::window_process(HWND hwnd, UINT message, WPARAM wparam,
 
             return 0;
         } case WM_PAINT: {
-            auto* application = reinterpret_cast<UApplication*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+            auto* application = reinterpret_cast<UApp*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
             if (!application) return DefWindowProcW(hwnd, message, wparam, lparam);
 
             application->draw_frame();
@@ -184,7 +184,7 @@ inline auto UApplication::window_process(HWND hwnd, UINT message, WPARAM wparam,
     return DefWindowProcW(hwnd, message, wparam, lparam);
 }
 
-inline auto UApplication::debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity, [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT message_type, const VkDebugUtilsMessengerCallbackDataEXT* callback_data, [[maybe_unused]] auto* user_data) -> VkBool32 {
+inline auto UApp::debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity, [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT message_type, const VkDebugUtilsMessengerCallbackDataEXT* callback_data, [[maybe_unused]] auto* user_data) -> VkBool32 {
     switch (message_severity) {
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
             ULogger::ulixwarn(callback_data->pMessage);
@@ -197,29 +197,29 @@ inline auto UApplication::debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT 
     return VK_FALSE;
 }
 
-inline auto UApplication::create_window(const UWindowInfo& window_info) -> void {
+inline auto UApp::create_window(const UWindowInfo& window_info) -> void {
     uts::str window_class_name = window_info.get_window_class_name();
     uts::str window_title = window_info.get_window_title();
     uts::wstr window_wide_class_name = uts::wstr(window_class_name.begin(), window_class_name.end());
     uts::wstr window_wide_title = uts::wstr(window_title.begin(), window_title.end());
     URect window_rect = window_info.get_initial_window_rect();
-    uts::u32 physical_window_width = UWin32Function::logical_pixels_to_physical(window_rect.get_width());
-    uts::u32 physical_window_height = UWin32Function::logical_pixels_to_physical(window_rect.get_height());
-    uts::i32 physical_window_x = UWin32Function::logical_pixels_to_physical(window_rect.get_x());
-    uts::i32 physical_window_y = UWin32Function::logical_pixels_to_physical(window_rect.get_y());
+    uts::u32 physical_window_width = UWin32Functions::physical_cast(window_rect.get_width());
+    uts::u32 physical_window_height = UWin32Functions::physical_cast(window_rect.get_height());
+    uts::i32 physical_window_x = UWin32Functions::physical_cast(window_rect.get_x());
+    uts::i32 physical_window_y = UWin32Functions::physical_cast(window_rect.get_y());
 
     window_current_width = physical_window_width;
     window_current_height = physical_window_height;
 
     DWORD window_style = WS_OVERLAPPED |  WS_CAPTION |  WS_THICKFRAME |  WS_MINIMIZEBOX |  WS_MAXIMIZEBOX;
-    if (window_info.get_window_attributes() & UWindowAttribute::Titled) {
+    if (window_info.get_window_attrs() & UWindowAttrs::Titled) {
         window_titled_state = true;
-    } else if (!(window_info.get_window_attributes() & UWindowAttribute::Bordered)) {
+    } else if (!(window_info.get_window_attrs() & UWindowAttrs::Bordered)) {
         window_style &= ~WS_BORDER;
         window_resizable_state = false;
     }
 
-    if (window_info.get_window_attributes() & UWindowAttribute::Resizable) {
+    if (window_info.get_window_attrs() & UWindowAttrs::Resizable) {
         window_resizable_state = true;
     } else {
         window_style &= ~WS_THICKFRAME;
@@ -230,8 +230,8 @@ inline auto UApplication::create_window(const UWindowInfo& window_info) -> void 
     wcex.cbSize = sizeof(WNDCLASSEXW);
     wcex.style = CS_HREDRAW | CS_VREDRAW;
     wcex.lpfnWndProc = window_process;
-    wcex.hInstance = UWin32Function::hinstance;
-    wcex.hCursor = LoadCursorW(nullptr, UWin32Function::make_int_resource(32512));
+    wcex.hInstance = UWin32Functions::hinstance;
+    wcex.hCursor = LoadCursorW(nullptr, UWin32Functions::make_int_resource(32512));
     wcex.lpszClassName = window_wide_class_name.c_str();
     if (!RegisterClassExW(&wcex))
         ULogger::ulixerr("Failed to register window class, error code: {}", GetLastError());
@@ -239,7 +239,7 @@ inline auto UApplication::create_window(const UWindowInfo& window_info) -> void 
     window_hwnd = CreateWindowExW(
         0, window_wide_class_name.c_str(), window_wide_title.c_str(),
         window_style, physical_window_x, physical_window_y, physical_window_width, physical_window_height,
-        nullptr, nullptr, UWin32Function::hinstance, this);
+        nullptr, nullptr, UWin32Functions::hinstance, this);
     if (!window_hwnd) ULogger::ulixerr("Failed to create window, error code: {}", GetLastError());
 
     window_dpi = GetDpiForWindow(window_hwnd);
@@ -247,13 +247,13 @@ inline auto UApplication::create_window(const UWindowInfo& window_info) -> void 
     SetWindowPos(window_hwnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED); // Update window
 }
 
-inline UApplication::UApplication(const UApplicationInfo& application_info, const UWindowInfo& window_info, const URenderInfo& render_info) {
+inline UApp::UApp(const UAppInfo& application_info, const UWindowInfo& window_info, const URenderInfo& render_info) {
     create_window(window_info);
     create_vulkan_objects(application_info, render_info);
 }
-inline UApplication::~UApplication() { destroy_vulkan_objects(); }
+inline UApp::~UApp() { destroy_vulkan_objects(); }
 
-inline auto UApplication::exec() -> int {
+inline auto UApp::exec() -> int {
     MSG msg{}; while (true) {
         if (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
             if (msg.message == WM_QUIT) return msg.wParam;
@@ -264,32 +264,32 @@ inline auto UApplication::exec() -> int {
     return 0;
 }
 
-inline auto UApplication::show() -> void { ShowWindow(window_hwnd, SW_SHOW); UpdateWindow(window_hwnd); }
-inline auto UApplication::hide() -> void { ShowWindow(window_hwnd, SW_HIDE); UpdateWindow(window_hwnd); }
+inline auto UApp::show() -> void { ShowWindow(window_hwnd, SW_SHOW); UpdateWindow(window_hwnd); }
+inline auto UApp::hide() -> void { ShowWindow(window_hwnd, SW_HIDE); UpdateWindow(window_hwnd); }
 
-inline auto UApplication::rect() -> URect {
+inline auto UApp::rect() -> URect {
     RECT window_rect{}; GetWindowRect(window_hwnd, &window_rect);
     return URect(window_rect.left, window_rect.top,
-                 UWin32Function::physical_pixels_to_logical(window_rect.right - window_rect.left),
-                 UWin32Function::physical_pixels_to_logical(window_rect.bottom - window_rect.top));
+                 UWin32Functions::logical_cast(window_rect.right - window_rect.left),
+                 UWin32Functions::logical_cast(window_rect.bottom - window_rect.top));
 }
 
-inline auto UApplication::rected(const URect& rect) -> void {
-    uts::i32 physical_x = UWin32Function::logical_pixels_to_physical(rect.get_x());
-    uts::i32 physical_y = UWin32Function::logical_pixels_to_physical(rect.get_y());
-    uts::u32 physical_width = UWin32Function::logical_pixels_to_physical(rect.get_width());
-    uts::u32 physical_height = UWin32Function::logical_pixels_to_physical(rect.get_height());
+inline auto UApp::set_rect(const URect& rect) -> void {
+    uts::i32 physical_x = UWin32Functions::physical_cast(rect.get_x());
+    uts::i32 physical_y = UWin32Functions::physical_cast(rect.get_y());
+    uts::u32 physical_width = UWin32Functions::physical_cast(rect.get_width());
+    uts::u32 physical_height = UWin32Functions::physical_cast(rect.get_height());
 
     MoveWindow(window_hwnd, physical_x, physical_y, physical_width, physical_height, TRUE);
 }
 
-inline auto UApplication::exit() -> void {
+inline auto UApp::exit() -> void {
     PostMessageW(window_hwnd, WM_CLOSE, 0, 0);
 }
 
-inline auto UApplication::addattr(UWindowAttribute attribute) -> void {
+inline auto UApp::add_attr(UWindowAttrs attribute) -> void {
     switch (attribute) {
-        case UWindowAttribute::Resizable: {
+        case UWindowAttrs::Resizable: {
             window_resizable_state = true;
 
             DWORD style = GetWindowLongPtrW(window_hwnd, GWL_STYLE);
@@ -297,27 +297,27 @@ inline auto UApplication::addattr(UWindowAttribute attribute) -> void {
 
             SetWindowLongPtrW(window_hwnd, GWL_STYLE, style);
             break;
-        } case UWindowAttribute::Titled: {
+        } case UWindowAttrs::Titled: {
             window_titled_state = true;
             break;
-        } case UWindowAttribute::Bordered: {
+        } case UWindowAttrs::Bordered: {
             DWORD style = GetWindowLongPtrW(window_hwnd, GWL_STYLE);
             style |= WS_BORDER;
 
             SetWindowLongPtrW(window_hwnd, GWL_STYLE, style);
             break;
-        } case UWindowAttribute::Normal: {
-            addattr(UWindowAttribute::Resizable);
-            addattr(UWindowAttribute::Titled);
-            addattr(UWindowAttribute::Bordered);
+        } case UWindowAttrs::Normal: {
+            add_attr(UWindowAttrs::Resizable);
+            add_attr(UWindowAttrs::Titled);
+            add_attr(UWindowAttrs::Bordered);
         }
     }
     SetWindowPos(window_hwnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED); // Update window
 }
 
-inline auto UApplication::rmattr(UWindowAttribute attribute) -> void {
+inline auto UApp::rmv_attr(UWindowAttrs attribute) -> void {
     switch (attribute) {
-        case UWindowAttribute::Resizable: {
+        case UWindowAttrs::Resizable: {
             window_resizable_state = false;
 
             DWORD style = GetWindowLongPtrW(window_hwnd, GWL_STYLE);
@@ -326,31 +326,31 @@ inline auto UApplication::rmattr(UWindowAttribute attribute) -> void {
 
             SetWindowLongPtrW(window_hwnd, GWL_STYLE, style);
             break;
-        } case UWindowAttribute::Titled: {
+        } case UWindowAttrs::Titled: {
             window_titled_state = false;
             break;
-        } case UWindowAttribute::Bordered: {
+        } case UWindowAttrs::Bordered: {
             DWORD style = GetWindowLongPtrW(window_hwnd, GWL_STYLE);
             style &= ~WS_BORDER;
 
             SetWindowLongPtrW(window_hwnd, GWL_STYLE, style);
             break;
-        } case UWindowAttribute::Normal: {
-            rmattr(UWindowAttribute::Resizable);
-            rmattr(UWindowAttribute::Titled);
-            rmattr(UWindowAttribute::Bordered);
+        } case UWindowAttrs::Normal: {
+            rmv_attr(UWindowAttrs::Resizable);
+            rmv_attr(UWindowAttrs::Titled);
+            rmv_attr(UWindowAttrs::Bordered);
         }
     }
     // Update window
     SetWindowPos(window_hwnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
 }
 
-inline auto UApplication::init() -> void {
+inline auto UApp::init() -> void {
     if (!SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2))
         ULogger::ulixerr("Failed to set DPI awareness, error code: {}", GetLastError());
 }
 
-inline auto UApplication::create_vulkan_instance(const UApplicationInfo& application_info) -> void {
+inline auto UApp::create_vulkan_instance(const UAppInfo& application_info) -> void {
     VkApplicationInfo vulkan_application_info{};
     vulkan_application_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     vulkan_application_info.pApplicationName = application_info.get_application_id().c_str();
@@ -393,7 +393,7 @@ inline auto UApplication::create_vulkan_instance(const UApplicationInfo& applica
     }
 }
 
-inline auto UApplication::check_validation_layer_support() -> bool {
+inline auto UApp::check_validation_layer_support() -> bool {
     uts::u32 layer_count = 0;
     vkEnumerateInstanceLayerProperties(&layer_count, VK_NULL_HANDLE);
     uts::vec<VkLayerProperties> available_layers = uts::vec<VkLayerProperties>(layer_count);
@@ -406,7 +406,7 @@ inline auto UApplication::check_validation_layer_support() -> bool {
     return false;
 }
 
-inline auto UApplication::create_debug_messenger(const UApplicationInfo& application_info) -> void {
+inline auto UApp::create_debug_messenger(const UAppInfo& application_info) -> void {
     if (!application_info.get_enabled_vulkan_debug())
         return;
 
@@ -420,7 +420,7 @@ inline auto UApplication::create_debug_messenger(const UApplicationInfo& applica
         ULogger::ulixerr("Failed to create debug messenger");
 }
 
-inline auto UApplication::destroy_debug_utils_messenger() -> void {
+inline auto UApp::destroy_debug_utils_messenger() -> void {
     if (debug_messenger == VK_NULL_HANDLE)
         return;
 
@@ -430,7 +430,7 @@ inline auto UApplication::destroy_debug_utils_messenger() -> void {
     func(vulkan_instance, debug_messenger, VK_NULL_HANDLE);
 }
 
-inline auto UApplication::populate_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT& debug_utils_messenger_create_info) -> void {
+inline auto UApp::populate_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT& debug_utils_messenger_create_info) -> void {
     debug_utils_messenger_create_info = {};
     debug_utils_messenger_create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
     debug_utils_messenger_create_info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
@@ -438,7 +438,7 @@ inline auto UApplication::populate_debug_messenger_create_info(VkDebugUtilsMesse
     debug_utils_messenger_create_info.pfnUserCallback = debug_callback;
 }
 
-inline auto UApplication::select_physical_device() -> void {
+inline auto UApp::select_physical_device() -> void {
     uts::u32 physical_device_count = 0;
     vkEnumeratePhysicalDevices(vulkan_instance, &physical_device_count, VK_NULL_HANDLE);
     if (physical_device_count == 0) ULogger::ulixerr("Failed to find GPUs with Vulkan support");
@@ -471,7 +471,7 @@ inline auto UApplication::select_physical_device() -> void {
     physical_device_infos = alternative_device_infos;
 }
 
-inline auto UApplication::create_logical_device() -> void {
+inline auto UApp::create_logical_device() -> void {
     uts::vec<VkDeviceQueueCreateInfo> device_queue_create_infos;
     uts::set<uts::u32> unique_queue_family_indices = physical_device_infos.get_unique_queue_family_indices();
     float queue_priorities = 1.0f;
@@ -498,17 +498,17 @@ inline auto UApplication::create_logical_device() -> void {
     device_queues = __uii::vkclses::DeviceQueues(logical_device, physical_device_infos);
 }
 
-inline auto UApplication::create_window_surface() -> void {
+inline auto UApp::create_window_surface() -> void {
     VkWin32SurfaceCreateInfoKHR win32_surface_create_info{};
     win32_surface_create_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
     win32_surface_create_info.hwnd = window_hwnd;
-    win32_surface_create_info.hinstance = UWin32Function::hinstance;
+    win32_surface_create_info.hinstance = UWin32Functions::hinstance;
 
     if (vkCreateWin32SurfaceKHR(vulkan_instance, &win32_surface_create_info, VK_NULL_HANDLE, &window_surface) != VK_SUCCESS)
         ULogger::ulixerr("Failed to create win32 window surface");
 }
 
-inline auto UApplication::create_swapchain() -> void {
+inline auto UApp::create_swapchain() -> void {
     __uii::vkclses::SwapchainSupportDetails& swapchain_support_details = physical_device_infos.swapchain_support_details;
     __uii::vkclses::OptionalQueueFamilyIndices& optional_queue_family_indices = physical_device_infos.queue_family_indices;
     VkSurfaceFormatKHR surface_format = swapchain_support_details.select_surface_format();
@@ -544,7 +544,7 @@ inline auto UApplication::create_swapchain() -> void {
     get_swapchain_images();
 }
 
-inline auto UApplication::get_swapchain_images() -> void {
+inline auto UApp::get_swapchain_images() -> void {
     uts::u32 image_count = 0;
     vkGetSwapchainImagesKHR(logical_device, swapchain, &image_count, VK_NULL_HANDLE);
     swapchain_images.resize(image_count);
@@ -553,7 +553,7 @@ inline auto UApplication::get_swapchain_images() -> void {
     max_frames_in_flight = static_cast<uts::size>(image_count);
 }
 
-inline auto UApplication::create_swapchain_image_views() -> void {
+inline auto UApp::create_swapchain_image_views() -> void {
     swapchain_image_views.resize(swapchain_images.size());
 
     for (uts::size index = 0; index < swapchain_images.size(); index++) {
@@ -576,7 +576,7 @@ inline auto UApplication::create_swapchain_image_views() -> void {
     }
 }
 
-inline auto UApplication::create_shader_module(unsigned char* code, unsigned int length) -> VkShaderModule {
+inline auto UApp::create_shader_module(unsigned char* code, unsigned int length) -> VkShaderModule {
     VkShaderModuleCreateInfo shader_module_create_info{};
     shader_module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     shader_module_create_info.codeSize = length;
@@ -589,7 +589,7 @@ inline auto UApplication::create_shader_module(unsigned char* code, unsigned int
     return shader_module;
 }
 
-inline auto UApplication::populate_pipeline_shader_stage_create_info(VkPipelineShaderStageCreateInfo& create_info, VkShaderModule shader_module, VkShaderStageFlagBits stage) -> void {
+inline auto UApp::populate_pipeline_shader_stage_create_info(VkPipelineShaderStageCreateInfo& create_info, VkShaderModule shader_module, VkShaderStageFlagBits stage) -> void {
     create_info = {};
     create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     create_info.stage = stage;
@@ -597,7 +597,7 @@ inline auto UApplication::populate_pipeline_shader_stage_create_info(VkPipelineS
     create_info.pName = "main";
 }
 
-inline auto UApplication::create_graphics_pipeline(const UApplicationInfo& application_info) -> void {
+inline auto UApp::create_graphics_pipeline(const UAppInfo& application_info) -> void {
     uts::str cache_file_path = application_info.get_pipeline_cache_file_path().get_file_path();
 
     VkShaderModule fragment_shader_module = create_shader_module(fragment_shader, fragment_shader_length);
@@ -752,7 +752,7 @@ inline auto UApplication::create_graphics_pipeline(const UApplicationInfo& appli
     vkDestroyShaderModule(logical_device, vertex_shader_module, VK_NULL_HANDLE);
 }
 
-inline auto UApplication::create_render_pass() -> void {
+inline auto UApp::create_render_pass() -> void {
     VkAttachmentDescription color_attachment_description{};
     color_attachment_description.format = swapchain_image_format;
     color_attachment_description.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -792,7 +792,7 @@ inline auto UApplication::create_render_pass() -> void {
         ULogger::ulixerr("Failed to create render pass");
 }
 
-inline auto UApplication::create_swapchain_frame_buffers() -> void {
+inline auto UApp::create_swapchain_frame_buffers() -> void {
     swapchain_frame_buffers.resize(swapchain_images.size());
 
     for (uts::size index = 0; index < swapchain_images.size(); index++) {
@@ -809,7 +809,7 @@ inline auto UApplication::create_swapchain_frame_buffers() -> void {
     }
 }
 
-inline auto UApplication::create_command_pool() -> void {
+inline auto UApp::create_command_pool() -> void {
     VkCommandPoolCreateInfo command_pool_create_info{};
     command_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     command_pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
@@ -818,7 +818,7 @@ inline auto UApplication::create_command_pool() -> void {
         ULogger::ulixerr("Failed to create command pool");
 }
 
-inline auto UApplication::create_command_buffers() -> void {
+inline auto UApp::create_command_buffers() -> void {
     command_buffers.resize(max_frames_in_flight);
 
     VkCommandBufferAllocateInfo command_buffer_allocate_info{};
@@ -830,7 +830,7 @@ inline auto UApplication::create_command_buffers() -> void {
         ULogger::ulixerr("Failed to allocate command buffer");
 }
 
-inline auto UApplication::create_sync_objects() -> void {
+inline auto UApp::create_sync_objects() -> void {
     image_available_semaphores.resize(max_frames_in_flight);
     render_finished_semaphores.resize(max_frames_in_flight);
     in_flight_fences.resize(max_frames_in_flight);
@@ -852,7 +852,7 @@ inline auto UApplication::create_sync_objects() -> void {
     }
 }
 
-inline auto UApplication::destroy_swapchain() -> void {
+inline auto UApp::destroy_swapchain() -> void {
     for (const auto& frame_buffer : swapchain_frame_buffers)
         vkDestroyFramebuffer(logical_device, frame_buffer, VK_NULL_HANDLE);
     for (const auto& image_view : swapchain_image_views)
@@ -860,7 +860,7 @@ inline auto UApplication::destroy_swapchain() -> void {
     vkDestroySwapchainKHR(logical_device, swapchain, VK_NULL_HANDLE);
 }
 
-inline auto UApplication::recreate_swapchain() -> void {
+inline auto UApp::recreate_swapchain() -> void {
     RECT window_rect;
     GetWindowRect(window_hwnd, &window_rect);
     uts::u32 width = window_rect.right - window_rect.left;
@@ -875,7 +875,7 @@ inline auto UApplication::recreate_swapchain() -> void {
     create_swapchain_frame_buffers();
 }
 
-inline auto UApplication::create_staging_buffer() -> void {
+inline auto UApp::create_staging_buffer() -> void {
     constexpr VkDeviceSize size = 1 << 22;
     staging_buffer = __uii::vkclses::Buffer(
         physical_device, logical_device,  size,
@@ -884,7 +884,7 @@ inline auto UApplication::create_staging_buffer() -> void {
     );
 }
 
-inline auto UApplication::create_vertex_buffer() -> void {
+inline auto UApp::create_vertex_buffer() -> void {
     VkDeviceSize size = render_vertices.size() * sizeof(__uii::vsdces::Vertex2D);
     vertex_buffer = __uii::vkclses::Buffer(
         physical_device, logical_device, size,
@@ -893,7 +893,7 @@ inline auto UApplication::create_vertex_buffer() -> void {
     );
 }
 
-inline auto UApplication::create_index_buffer() -> void {
+inline auto UApp::create_index_buffer() -> void {
     VkDeviceSize size = render_indices.size() * sizeof(uts::u32);
     index_buffer = __uii::vkclses::Buffer(
         physical_device, logical_device, size,
@@ -902,14 +902,14 @@ inline auto UApplication::create_index_buffer() -> void {
     );
 }
 
-inline auto UApplication::update_object_buffers() -> void {
+inline auto UApp::update_object_buffers() -> void {
     staging_buffer.map_memory(logical_device, render_vertices.data(), render_vertices.size() * sizeof(__uii::vsdces::Vertex2D));
     staging_buffer.copy_buffer_to(vertex_buffer, logical_device, command_pool, device_queues.graphics_queue, render_vertices.size() * sizeof(__uii::vsdces::Vertex2D));
     staging_buffer.map_memory(logical_device, render_indices.data(), render_indices.size() * sizeof(uts::u32));
     staging_buffer.copy_buffer_to(index_buffer, logical_device, command_pool, device_queues.graphics_queue, render_indices.size() * sizeof(uts::u32));
 }
 
-inline auto UApplication::record_command_buffer(VkCommandBuffer command_buffer, uts::u32 image_index) -> void {
+inline auto UApp::record_command_buffer(VkCommandBuffer command_buffer, uts::u32 image_index) -> void {
     VkCommandBufferBeginInfo command_buffer_begin_info{};
     command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     command_buffer_begin_info.flags = 0;
@@ -958,7 +958,7 @@ inline auto UApplication::record_command_buffer(VkCommandBuffer command_buffer, 
         ULogger::ulixerr("Failed to end command buffer");
 }
 
-inline auto UApplication::draw_frame() -> void {
+inline auto UApp::draw_frame() -> void {
     vkWaitForFences(logical_device, 1, &in_flight_fences[current_frame], VK_TRUE, UINT64_MAX);
     if (render_dirty) {
         render_dirty = false;
@@ -1004,7 +1004,7 @@ inline auto UApplication::draw_frame() -> void {
     tick_timer.update(*this);
 }
 
-inline auto UApplication::create_descriptor_set_layout() -> void {
+inline auto UApp::create_descriptor_set_layout() -> void {
     VkDescriptorSetLayoutBinding descriptor_set_layout_binding{};
     descriptor_set_layout_binding.binding = 0;
     descriptor_set_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -1020,7 +1020,7 @@ inline auto UApplication::create_descriptor_set_layout() -> void {
         ULogger::ulixerr("Failed to create descriptor set layout");
 }
 
-inline auto UApplication::create_descriptor_pool() -> void {
+inline auto UApp::create_descriptor_pool() -> void {
     VkDescriptorPoolSize descriptor_pool_size{};
     descriptor_pool_size.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     descriptor_pool_size.descriptorCount = static_cast<uts::u32>(texture_image_pixmaps.size()) * static_cast<uts::u32>(max_frames_in_flight);
@@ -1034,12 +1034,12 @@ inline auto UApplication::create_descriptor_pool() -> void {
         ULogger::ulixerr("Failed to create descriptor pool");
 }
 
-inline auto UApplication::create_descriptor_set() -> void {
-    std::vector<VkDescriptorSetLayout> layouts(max_frames_in_flight, descriptor_set_layout);
+inline auto UApp::create_descriptor_set() -> void {
+    uts::vec<VkDescriptorSetLayout> layouts(max_frames_in_flight, descriptor_set_layout);
     VkDescriptorSetAllocateInfo descriptor_set_allocate_info{};
     descriptor_set_allocate_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     descriptor_set_allocate_info.descriptorPool = descriptor_pool;
-    descriptor_set_allocate_info.descriptorSetCount = static_cast<std::uint32_t>(max_frames_in_flight);
+    descriptor_set_allocate_info.descriptorSetCount = static_cast<uts::u32>(max_frames_in_flight);
     descriptor_set_allocate_info.pSetLayouts = layouts.data();
 
     descriptor_sets.resize(max_frames_in_flight);
@@ -1059,7 +1059,7 @@ inline auto UApplication::create_descriptor_set() -> void {
     }
 }
 
-inline auto UApplication::create_texture_images() -> void {
+inline auto UApp::create_texture_images() -> void {
     texture_images.resize(texture_image_pixmaps.size());
 
     uts::vec<VkDeviceSize> offsets(texture_image_pixmaps.size());
@@ -1101,7 +1101,7 @@ inline auto UApplication::create_texture_images() -> void {
     __uii::vkalg::end_single_time_command_buffer(logical_device, device_queues.graphics_queue, command_pool, single_time_command_buffer);
 }
 
-inline auto UApplication::create_texture_image(uts::size index) -> VkMemoryRequirements {
+inline auto UApp::create_texture_image(uts::size index) -> VkMemoryRequirements {
     VkImage& texture = texture_images[index];
     UPixmap pixmap = texture_image_pixmaps[index];
     URect rect = pixmap.get_rect();
@@ -1128,7 +1128,7 @@ inline auto UApplication::create_texture_image(uts::size index) -> VkMemoryRequi
     return memory_requirements;
 }
 
-inline auto UApplication::destroy_vulkan_objects() -> void {
+inline auto UApp::destroy_vulkan_objects() -> void {
     vkDeviceWaitIdle(logical_device);
 
     destroy_swapchain();
@@ -1157,7 +1157,7 @@ inline auto UApplication::destroy_vulkan_objects() -> void {
     vkDestroyInstance(vulkan_instance, VK_NULL_HANDLE);
 }
 
-inline auto UApplication::create_vulkan_objects(const UApplicationInfo& application_info, const URenderInfo& render_info) -> void {
+inline auto UApp::create_vulkan_objects(const UAppInfo& application_info, const URenderInfo& render_info) -> void {
     this->render_callback = reinterpret_cast<RenderCallback>(render_info.get_render_callback());
     this->texture_image_pixmaps = render_info.get_texture_images();
     this->enabled_debug = application_info.get_enabled_vulkan_debug();

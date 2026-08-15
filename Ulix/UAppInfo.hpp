@@ -1,9 +1,9 @@
 #pragma once
 
-#include "UFile.hpp"
+#include <UFile.hpp>
 #include <UTypes.hpp>
 
-class UApplicationInfo {
+class UAppInfo {
     private:
         uts::str application_id;
         UFile cache_file_path;
@@ -11,21 +11,21 @@ class UApplicationInfo {
         bool enabled_vulkan_debug;
 
     public:
-        UApplicationInfo() = default;
-        inline constexpr UApplicationInfo(const uts::str& application_id, const UFile& cache_file_path):
+        UAppInfo() = default;
+        inline constexpr UAppInfo(const uts::str& application_id, const UFile& cache_file_path):
             application_id(application_id),
             cache_file_path(cache_file_path),
             application_version(1),
             enabled_vulkan_debug(true)
         {}
 
-        inline auto version(uts::u32 major, uts::u32 minor, uts::u32 patch) -> UApplicationInfo& {
+        inline auto version(uts::u32 major, uts::u32 minor, uts::u32 patch) -> UAppInfo& {
             application_version = (major << 22) | (minor << 12) | patch;
 
             return *this;
         }
 
-        inline auto vkdbg(bool enabled = true) -> UApplicationInfo& {
+        inline auto vkdbg(bool enabled = true) -> UAppInfo& {
             enabled_vulkan_debug = enabled;
 
             return *this;

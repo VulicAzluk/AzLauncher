@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include <URenderScene.hpp>
+#include <UScene.hpp>
 #include <UTypes.hpp>
 #include <ULogger.hpp>
 #include <__UInsideImpl/__VulkanRequirements.hpp>
@@ -90,7 +90,7 @@ namespace __uii::vkclses {
         bool extension_support;
 
         PhysicalDeviceInfos() = default;
-        PhysicalDeviceInfos(VkPhysicalDevice device, VkSurfaceKHR window_surface) {
+        PhysicalDeviceInfos(VkPhysicalDevice device, VkSurfaceKHR surface) {
             vkGetPhysicalDeviceProperties(device, &properties);
             vkGetPhysicalDeviceMemoryProperties(device, &memory_properties);
             vkGetPhysicalDeviceFeatures(device, &features);
@@ -100,30 +100,24 @@ namespace __uii::vkclses {
             vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, VK_NULL_HANDLE);
             uts::vec<VkQueueFamilyProperties> queue_family_properties_list = uts::vec<VkQueueFamilyProperties>(queue_family_count);
             vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, queue_family_properties_list.data());
-            uts::u32 index = 0;
-            for (const auto& queue_family_properties : queue_family_properties_list) {
-                if (queue_family_properties.queueFlags & VK_QUEUE_GRAPHICS_BIT)
-                    queue_family_indices.graphics_queue_family_index = index;
+
+            for (uts::size i = 0; i < queue_family_count; i++) {
+                if (queue_family_properties_list[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+                    queue_family_indices.graphics_queue_family_index = i;
 
                 VkBool32 present_queue_family_support = false;
-                vkGetPhysicalDeviceSurfaceSupportKHR(device, index, window_surface, &present_queue_family_support);
-                if (present_queue_family_support) {
-                    queue_family_indices.present_queue_family_index = index;
-                }
-
-                if (queue_family_indices.is_complete())
-                    break;
-
-                index++;
+                vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &present_queue_family_support);
+                if (present_queue_family_support) queue_family_indices.present_queue_family_index = i;
+                if (queue_family_indices.is_complete()) break;
             }
 
             extension_support = check_extension_support(device);
             if (!extension_support) return;
-            swapchain_support_details = SwapchainSupportDetails(device, window_surface);
+            swapchain_support_details = SwapchainSupportDetails(device, surface);
         }
 
-        inline auto get_unique_queue_family_indices() -> std::set<uts::u32> {
-            std::set<uts::u32> unique_queue_family_indices = {
+        inline auto get_unique_queue_family_indices() -> uts::set<uts::u32> {
+            uts::set<uts::u32> unique_queue_family_indices = {
                 queue_family_indices.graphics_queue_family_index.value(),
                 queue_family_indices.present_queue_family_index.value()
             };

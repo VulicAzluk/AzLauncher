@@ -1,4 +1,4 @@
-#include "ApplicationSetup.hpp"
+#include "AppSetup.hpp"
 
 struct Resources {
     enum TextureImages {
@@ -8,8 +8,8 @@ struct Resources {
     };
 };
 
-auto render_objects([[maybe_unused]] UApplication& application) -> URenderScene {
-    return URenderScene()
+auto render_objects([[maybe_unused]] UApp& application) -> UScene {
+    return UScene()
         .background(UColor(11, 45, 14))
         .child(UObject()
             .zindex(1)
@@ -37,6 +37,6 @@ auto render_objects([[maybe_unused]] UApplication& application) -> URenderScene 
 }
 
 auto main() -> int {
-    ApplicationSetup::init(render_objects, Resources::texture_images);
-    return ApplicationSetup::exec(UApplication::TickTimer());
+    AppSetup::init(render_objects, Resources::texture_images);
+    return AppSetup::exec(UApp::TickTimer());
 }

@@ -4,21 +4,21 @@
 #include <UColor.hpp>
 #include <UObject.hpp>
 
-class URenderScene {
+class UScene {
     private:
         uts::vec<UObject> objects;
         UColor background_color;
 
     public:
-        URenderScene() = default;
+        UScene() = default;
 
     public:
-        inline auto child(const UObject& object) -> URenderScene& {
+        inline auto child(const UObject& object) -> UScene& {
             objects.push_back(object);
             return *this;
         }
 
-        inline auto background(const UColor& color) -> URenderScene& {
+        inline auto background(const UColor& color) -> UScene& {
             background_color = color;
             return *this;
         }

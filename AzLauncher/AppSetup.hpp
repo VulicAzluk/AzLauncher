@@ -3,16 +3,16 @@
 #include <URenderInfo.hpp>
 #include <UTimer.hpp>
 #include <ULogger.hpp>
-#include <UWinScreen.hpp>
+#include <UScreen.hpp>
 #include <UAnchor.hpp>
 #include <UColor.hpp>
 #include <UObject.hpp>
 #include <URect.hpp>
-#include <URenderScene.hpp>
-#include <UApplication.hpp>
+#include <UScene.hpp>
+#include <UApp.hpp>
 #include <UWindowAttribute.hpp>
 #include <UWindowInfo.hpp>
-#include <UApplicationInfo.hpp>
+#include <UAppInfo.hpp>
 #include <UExtensions/AzPragmaComments.hpp>
 
 
@@ -46,28 +46,28 @@ inline std::filesystem::path get_cache_path() {
     return cache_dir;
 }
 
-namespace ApplicationSetup {
+namespace AppSetup {
     inline UWindowInfo window_info;
-    inline UApplicationInfo application_info;
+    inline UAppInfo appinfo;
     inline URenderInfo render_info;
 
-    inline void init(UApplication::RenderCallback render_callback, uts::vec<UPixmap> texture_images) {
-        UApplication::init();
+    inline void init(UApp::RenderCallback render_callback, uts::vec<UPixmap> texture_images) {
+        UApp::init();
 
         window_info = UWindowInfo("AzLauncher", "AzLauncherWindowClass")
-            .unattr(UWindowAttribute::Titled)
-            .rect(UWinScreen::get_rect().create_with_percent_of_width(0.8, 0.625));
-        application_info = UApplicationInfo("AzLauncher", (get_cache_path() / "cache.bin").string())
+            .unattrs(UWindowAttrs::Titled)
+            .rect(UScreen::get_rect().new_with_widthper(0.8, 0.625));
+        appinfo = UAppInfo("AzLauncher", (get_cache_path() / "cache.bin").string())
             .version(1, 0, 0)
             .vkdbg(enabled_vulkan_debug);
         render_info = URenderInfo(render_callback)
             .textures(texture_images);
     }
 
-    inline int exec(UApplication::TickTimer tick_timer) {
-        UApplication application = UApplication(application_info, window_info, render_info);
-        application.rected(UWinScreen::get_rect().create_center_rect(application.rect()));
-        application.set_tick_timer(tick_timer);
+    inline int exec(UApp::TickTimer tick_timer) {
+        UApp application = UApp(appinfo, window_info, render_info);
+        application.set_rect(UScreen::get_rect().new_center(application.rect()));
+        application.set_timer(tick_timer);
 
         application.show();
         return application.exec();
