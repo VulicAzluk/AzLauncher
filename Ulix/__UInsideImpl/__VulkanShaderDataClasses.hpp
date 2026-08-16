@@ -16,6 +16,8 @@ namespace __uii::vsdces {
         uts::f32 border_width;
         glm::vec4 border_color;
         glm::vec2 center;
+        glm::vec2 uv;
+        uts::u32 tex_index;
 
         inline static auto get_binding_description() -> VkVertexInputBindingDescription {
             VkVertexInputBindingDescription binding_description{};
@@ -26,8 +28,8 @@ namespace __uii::vsdces {
             return binding_description;
         }
 
-        inline static auto get_attribute_descriptions() -> std::array<VkVertexInputAttributeDescription, 7> {
-            std::array<VkVertexInputAttributeDescription, 7> attribute_descriptions{};
+        inline static auto get_attribute_descriptions() -> std::array<VkVertexInputAttributeDescription, 9> {
+            std::array<VkVertexInputAttributeDescription, 9> attribute_descriptions{};
             attribute_descriptions[0].binding = 0;
             attribute_descriptions[0].location = 0;
             attribute_descriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
@@ -62,6 +64,16 @@ namespace __uii::vsdces {
             attribute_descriptions[6].location = 6;
             attribute_descriptions[6].format = VK_FORMAT_R32G32_SFLOAT;
             attribute_descriptions[6].offset = offsetof(Vertex2D, center);
+
+            attribute_descriptions[7].binding = 0;
+            attribute_descriptions[7].location = 7;
+            attribute_descriptions[7].format = VK_FORMAT_R32G32_SFLOAT;
+            attribute_descriptions[7].offset = offsetof(Vertex2D, uv);
+
+            attribute_descriptions[8].binding = 0;
+            attribute_descriptions[8].location = 8;
+            attribute_descriptions[8].format = VK_FORMAT_R32_UINT;
+            attribute_descriptions[8].offset = offsetof(Vertex2D, tex_index);
 
             return attribute_descriptions;
         }

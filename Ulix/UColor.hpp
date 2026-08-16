@@ -4,11 +4,11 @@
 
 class UColor {
     private:
-        uts::u8 red, green, blue, alpha;
+        uts::f32 red, green, blue, alpha;
 
     public:
         UColor() = default;
-        inline constexpr UColor(uts::u8 red, uts::u8 green, uts::u8 blue, uts::u8 alpha = 255):
+        inline constexpr UColor(uts::f32 red, uts::f32 green, uts::f32 blue, uts::f32 alpha = 255):
             red(red), green(green), blue(blue), alpha(alpha) {}
 
     public:
@@ -19,8 +19,8 @@ class UColor {
         constexpr auto to_bgr() const -> uts::u32 { return (static_cast<uts::u32>(blue) << 16) | (static_cast<uts::u32>(green) << 8) | static_cast<uts::u32>(red); }
         constexpr auto to_rgb() const -> uts::u32 { return (static_cast<uts::u32>(red) << 16) | (static_cast<uts::u32>(green) << 8) | static_cast<uts::u32>(blue); }
 
-        auto get_red() const -> std::uint8_t { return red; }
-        auto get_green() const -> std::uint8_t { return green; }
-        auto get_blue() const -> std::uint8_t { return blue; }
-        auto get_alpha() const -> std::uint8_t { return alpha; }
+        auto get_red() const -> uts::f32 { return red; }
+        auto get_green() const -> uts::f32 { return green; }
+        auto get_blue() const -> uts::f32 { return blue; }
+        auto get_alpha() const -> uts::f32 { return alpha; }
 };

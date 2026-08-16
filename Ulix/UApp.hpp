@@ -1,8 +1,10 @@
 #pragma once
 
+#include "vulkan/vulkan_core.h"
 #include <URenderInfo.hpp>
 #include <UTimer.hpp>
 #include <UScene.hpp>
+#include <algorithm>
 #include <cassert>
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
@@ -12,6 +14,7 @@
 #include <__UInsideImpl/__VulkanAlgorithm.hpp>
 #include <__UInsideImpl/__VulkanRequirements.hpp>
 #include <__UClassDecl/__UApp.hpp>
+#include <UMacros.hpp>
 #include <URect.hpp>
 #include <ULogger.hpp>
 #include <UColor.hpp>
@@ -39,8 +42,8 @@ inline auto UApp::update_push_constant() -> void {
         -1.0f, 1.0f);
 }
 
-inline auto UApp::push_objects(uts::vec<UObject>& objects, uts::u32& render_index) -> void {
-    [[maybe_unused]] float window_height = static_cast<float>(window_current_height);
+inline auto UApp::push_objects(uts::vec<UObject>& objects, uts::u32& render_index, uts::f32 parent_width, uts::f32 parent_height) -> void {
+    float window_height = static_cast<float>(window_current_height);
     std::sort(objects.begin(), objects.end(), [](const UObject& object1, const UObject& object2) -> bool { return object1.get_z_index() < object2.get_z_index(); });
     current_background_color = current_render_scene.get_background_color();
 
@@ -62,6 +65,9 @@ inline auto UApp::push_objects(uts::vec<UObject>& objects, uts::u32& render_inde
         float bottom_left_border_width = UWin32Functions::physical_cast(object.get_bottom_left_border_width(), window_dpi);
         float bottom_right_border_width = UWin32Functions::physical_cast(object.get_bottom_right_border_width(), window_dpi);
         URect rect = object.get_rect();
+        if (rect.get_width() == -1.0f) rect = rect.new_with_size(parent_width - rect.get_x(), rect.get_height());
+        if (rect.get_height() == -1.0f) rect = rect.new_with_size(rect.get_width(), parent_height - rect.get_y());
+
         float x = UWin32Functions::physical_cast(rect.get_x(), window_dpi);
         float y = UWin32Functions::physical_cast(rect.get_y(), window_dpi);
         float width = UWin32Functions::physical_cast(rect.get_width(), window_dpi);
@@ -80,13 +86,14 @@ inline auto UApp::push_objects(uts::vec<UObject>& objects, uts::u32& render_inde
         glm::vec4 bottom_left_border_color_vec = __uii::vkalg::color_to_vec4(bottom_left_border_color);
         glm::vec4 top_left_border_color_vec = __uii::vkalg::color_to_vec4(top_left_border_color);
         glm::vec4 top_right_border_color_vec = __uii::vkalg::color_to_vec4(top_right_border_color);
+        uts::u32 texture_index = object.get_texture_index();
 
 
         render_vertices.insert(render_vertices.end(), {
-            {top_right, bottom_right_color_vec, bottom_right_corner_radius, half_size, bottom_right_border_width, bottom_right_border_color_vec, center},
-            {top_left, bottom_left_color_vec, bottom_left_corner_radius, half_size, bottom_left_border_width, bottom_left_border_color_vec, center},
-            {bottom_left, top_left_color_vec, top_left_corner_radius, half_size, top_left_border_width, top_left_border_color_vec, center},
-            {bottom_right, top_right_color_vec, top_right_corner_radius, half_size, top_right_border_width, top_right_border_color_vec, center}});
+            {top_right, bottom_right_color_vec, bottom_right_corner_radius, half_size, bottom_right_border_width, bottom_right_border_color_vec, center, {1.0f, 1.0f}, texture_index},
+            {top_left, bottom_left_color_vec, bottom_left_corner_radius, half_size, bottom_left_border_width, bottom_left_border_color_vec, center, {0.0f, 1.0f}, texture_index},
+            {bottom_left, top_left_color_vec, top_left_corner_radius, half_size, top_left_border_width, top_left_border_color_vec, center, {0.0f, 0.0f}, texture_index},
+            {bottom_right, top_right_color_vec, top_right_corner_radius, half_size, top_right_border_width, top_right_border_color_vec, center, {1.0f, 0.0f}, texture_index}});
         render_indices.insert(render_indices.end(), {
             render_index, render_index + 1, render_index + 2,
             render_index + 2, render_index + 3, render_index});
@@ -94,7 +101,7 @@ inline auto UApp::push_objects(uts::vec<UObject>& objects, uts::u32& render_inde
 
 
         uts::vec<UObject> child_objects = object.get_objects();
-        if (!child_objects.empty()) push_objects(child_objects, render_index);
+        if (!child_objects.empty()) push_objects(child_objects, render_index, rect.get_width(), rect.get_height());
     }
 }
 
@@ -105,7 +112,7 @@ inline auto UApp::update_scene_objects() -> void {
     current_render_scene = render_callback(*this);
     uts::vec<UObject> objects = current_render_scene.get_objects();
 
-    push_objects(objects, render_index);
+    push_objects(objects, render_index, UWin32Functions::logical_cast(window_current_width, window_dpi), UWin32Functions::logical_cast(window_current_height, window_dpi));
 }
 
 inline auto UApp::set_timer(const TickTimer& timer) -> void { this->tick_timer = timer; }
@@ -234,13 +241,13 @@ inline auto UApp::create_window(const UWindowInfo& window_info) -> void {
     wcex.hCursor = LoadCursorW(nullptr, UWin32Functions::make_int_resource(32512));
     wcex.lpszClassName = window_wide_class_name.c_str();
     if (!RegisterClassExW(&wcex))
-        ULogger::ulixerr("Failed to register window class, error code: {}", GetLastError());
+        ULogger::ulixerr("failed to register window class, error code: {}", GetLastError());
 
     window_hwnd = CreateWindowExW(
         0, window_wide_class_name.c_str(), window_wide_title.c_str(),
         window_style, physical_window_x, physical_window_y, physical_window_width, physical_window_height,
         nullptr, nullptr, UWin32Functions::hinstance, this);
-    if (!window_hwnd) ULogger::ulixerr("Failed to create window, error code: {}", GetLastError());
+    if (!window_hwnd) ULogger::ulixerr("failed to create window, error code: {}", GetLastError());
 
     window_dpi = GetDpiForWindow(window_hwnd);
     SetWindowLongPtrW(window_hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
@@ -347,7 +354,7 @@ inline auto UApp::rmv_attr(UWindowAttrs attribute) -> void {
 
 inline auto UApp::init() -> void {
     if (!SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2))
-        ULogger::ulixerr("Failed to set DPI awareness, error code: {}", GetLastError());
+        ULogger::ulixerr("railed to set DPI awareness, error code: {}", GetLastError());
 }
 
 inline auto UApp::create_vulkan_instance(const UAppInfo& application_info) -> void {
@@ -357,7 +364,7 @@ inline auto UApp::create_vulkan_instance(const UAppInfo& application_info) -> vo
     vulkan_application_info.applicationVersion = application_info.get_application_version();
     vulkan_application_info.pEngineName = "No Engine";
     vulkan_application_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    vulkan_application_info.apiVersion = VK_API_VERSION_1_0;
+    vulkan_application_info.apiVersion = VK_API_VERSION_1_2;
     VkInstanceCreateInfo vulkan_instance_create_info{};
     vulkan_instance_create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     vulkan_instance_create_info.pApplicationInfo = &vulkan_application_info;
@@ -369,7 +376,7 @@ inline auto UApp::create_vulkan_instance(const UAppInfo& application_info) -> vo
 
     if (application_info.get_enabled_vulkan_debug()) {
         if (!check_validation_layer_support())
-            ULogger::ulixerr("Requested validation layers not available");
+            ULogger::ulixerr("requested validation layers not available");
 
         vulkan_instance_create_info.enabledLayerCount++;
         vulkan_instance_create_info.enabledExtensionCount++;
@@ -385,11 +392,11 @@ inline auto UApp::create_vulkan_instance(const UAppInfo& application_info) -> vo
     switch (vkCreateInstance(&vulkan_instance_create_info, VK_NULL_HANDLE, &vulkan_instance)) {
         case VK_SUCCESS: return;
         case VK_ERROR_INCOMPATIBLE_DRIVER:
-            ULogger::ulixerr("Failed to create vulkan instance: Incompatible driver");
+            ULogger::ulixerr("failed to create vulkan instance: Incompatible driver");
         case VK_ERROR_EXTENSION_NOT_PRESENT:
-            ULogger::ulixerr("Failed to create vulkan instance: Extension not present");
+            ULogger::ulixerr("failed to create vulkan instance: Extension not present");
         default:
-            ULogger::ulixerr("Failed to create vulkan instance: Unknown type error");
+            ULogger::ulixerr("failed to create vulkan instance: Unknown type error");
     }
 }
 
@@ -415,9 +422,9 @@ inline auto UApp::create_debug_messenger(const UAppInfo& application_info) -> vo
 
     auto func = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(vulkan_instance, "vkCreateDebugUtilsMessengerEXT"));
     if (func == VK_NULL_HANDLE)
-        ULogger::ulixerr("Failed to get function pointer vkCreateDebugUtilsMessengerEXT from Vulkan instance");
+        ULogger::ulixerr("failed to get function pointer vkCreateDebugUtilsMessengerEXT from Vulkan instance");
     if (func(vulkan_instance, &debug_utils_messenger_create_info, VK_NULL_HANDLE, &debug_messenger) != VK_SUCCESS)
-        ULogger::ulixerr("Failed to create debug messenger");
+        ULogger::ulixerr("failed to create debug messenger");
 }
 
 inline auto UApp::destroy_debug_utils_messenger() -> void {
@@ -426,7 +433,7 @@ inline auto UApp::destroy_debug_utils_messenger() -> void {
 
     auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(vulkan_instance, "vkDestroyDebugUtilsMessengerEXT");
     if (func == VK_NULL_HANDLE)
-        ULogger::ulixerr("Failed to get function pointer vkDestroyDebugUtilsMessengerEXT from Vulkan instance");
+        ULogger::ulixerr("failed to get function pointer vkDestroyDebugUtilsMessengerEXT from Vulkan instance");
     func(vulkan_instance, debug_messenger, VK_NULL_HANDLE);
 }
 
@@ -441,7 +448,7 @@ inline auto UApp::populate_debug_messenger_create_info(VkDebugUtilsMessengerCrea
 inline auto UApp::select_physical_device() -> void {
     uts::u32 physical_device_count = 0;
     vkEnumeratePhysicalDevices(vulkan_instance, &physical_device_count, VK_NULL_HANDLE);
-    if (physical_device_count == 0) ULogger::ulixerr("Failed to find GPUs with Vulkan support");
+    if (physical_device_count == 0) ULogger::ulixerr("failed to find GPUs with Vulkan support");
     uts::vec<VkPhysicalDevice> physical_devices = uts::vec<VkPhysicalDevice>(physical_device_count);
     vkEnumeratePhysicalDevices(vulkan_instance, &physical_device_count, physical_devices.data());
 
@@ -466,7 +473,7 @@ inline auto UApp::select_physical_device() -> void {
     }
 
     if (physical_device != VK_NULL_HANDLE) return;
-    if (alternative_device == VK_NULL_HANDLE) ULogger::ulixerr("Failed to pick a suitable GPU");
+    if (alternative_device == VK_NULL_HANDLE) ULogger::ulixerr("failed to pick a suitable GPU");
     physical_device = alternative_device;
     physical_device_infos = alternative_device_infos;
 }
@@ -485,6 +492,14 @@ inline auto UApp::create_logical_device() -> void {
     }
 
     VkPhysicalDeviceFeatures physical_device_features{};
+    physical_device_features.samplerAnisotropy = VK_TRUE;
+
+    VkPhysicalDeviceVulkan12Features features12{};
+    features12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+    features12.runtimeDescriptorArray = VK_TRUE;
+    features12.descriptorBindingPartiallyBound = VK_TRUE;
+    features12.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+
     VkDeviceCreateInfo device_create_info{};
     device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     device_create_info.queueCreateInfoCount = static_cast<uts::u32>(device_queue_create_infos.size());
@@ -492,8 +507,9 @@ inline auto UApp::create_logical_device() -> void {
     device_create_info.pEnabledFeatures = &physical_device_features;
     device_create_info.enabledExtensionCount = 1;
     device_create_info.ppEnabledExtensionNames = __uii::vkreqs::enabled_extension;
+    device_create_info.pNext = &features12;
     if (vkCreateDevice(physical_device, &device_create_info, VK_NULL_HANDLE, &logical_device) != VK_SUCCESS)
-        ULogger::ulixerr("Failed to create logical device");
+        ULogger::ulixerr("failed to create logical device");
 
     device_queues = __uii::vkclses::DeviceQueues(logical_device, physical_device_infos);
 }
@@ -505,7 +521,7 @@ inline auto UApp::create_window_surface() -> void {
     win32_surface_create_info.hinstance = UWin32Functions::hinstance;
 
     if (vkCreateWin32SurfaceKHR(vulkan_instance, &win32_surface_create_info, VK_NULL_HANDLE, &window_surface) != VK_SUCCESS)
-        ULogger::ulixerr("Failed to create win32 window surface");
+        ULogger::ulixerr("failed to create win32 window surface");
 }
 
 inline auto UApp::create_swapchain() -> void {
@@ -536,7 +552,7 @@ inline auto UApp::create_swapchain() -> void {
         swapchain_create_info.queueFamilyIndexCount = 2;
         swapchain_create_info.pQueueFamilyIndices = queue_family_indices; };
     if (vkCreateSwapchainKHR(logical_device, &swapchain_create_info, VK_NULL_HANDLE, &swapchain) != VK_SUCCESS)
-        ULogger::ulixerr("Failed to create swapchain");
+        ULogger::ulixerr("failed to create swapchain");
 
     swapchain_image_format = surface_format.format;
     swapchain_extent = extent;
@@ -556,24 +572,8 @@ inline auto UApp::get_swapchain_images() -> void {
 inline auto UApp::create_swapchain_image_views() -> void {
     swapchain_image_views.resize(swapchain_images.size());
 
-    for (uts::size index = 0; index < swapchain_images.size(); index++) {
-        VkImageViewCreateInfo image_view_create_info{};
-        image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        image_view_create_info.image = swapchain_images[index];
-        image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        image_view_create_info.format = swapchain_image_format;
-        image_view_create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-        image_view_create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-        image_view_create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-        image_view_create_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-        image_view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        image_view_create_info.subresourceRange.baseMipLevel = 0;
-        image_view_create_info.subresourceRange.levelCount = 1;
-        image_view_create_info.subresourceRange.baseArrayLayer = 0;
-        image_view_create_info.subresourceRange.layerCount = 1;
-        if (vkCreateImageView(logical_device, &image_view_create_info, VK_NULL_HANDLE, &swapchain_image_views[index]) != VK_SUCCESS)
-            ULogger::ulixerr("Failed to create swapchain image views");
-    }
+    for (uts::size index = 0; index < swapchain_images.size(); index++)
+        swapchain_image_views[index] = __uii::vkalg::create_image_view(logical_device, swapchain_images[index], swapchain_image_format);
 }
 
 inline auto UApp::create_shader_module(unsigned char* code, unsigned int length) -> VkShaderModule {
@@ -584,7 +584,7 @@ inline auto UApp::create_shader_module(unsigned char* code, unsigned int length)
 
     VkShaderModule shader_module;
     if (vkCreateShaderModule(logical_device, &shader_module_create_info, VK_NULL_HANDLE, &shader_module) != VK_SUCCESS)
-        ULogger::ulixerr("Failed to create shader module");
+        ULogger::ulixerr("failed to create shader module");
 
     return shader_module;
 }
@@ -615,7 +615,7 @@ inline auto UApp::create_graphics_pipeline(const UAppInfo& application_info) -> 
     pipeline_dynamic_state_create_info.pDynamicStates = __uii::vkreqs::dynamic_states;
 
     VkVertexInputBindingDescription vertex_input_binding_description = __uii::vsdces::Vertex2D::get_binding_description();
-    uts::arr<VkVertexInputAttributeDescription, 7> vertex_input_attribute_descriptions = __uii::vsdces::Vertex2D::get_attribute_descriptions();
+    uts::arr<VkVertexInputAttributeDescription, 9> vertex_input_attribute_descriptions = __uii::vsdces::Vertex2D::get_attribute_descriptions();
 
     VkPipelineVertexInputStateCreateInfo pipeline_vertex_input_state_create_info{};
     pipeline_vertex_input_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -698,16 +698,12 @@ inline auto UApp::create_graphics_pipeline(const UAppInfo& application_info) -> 
 
     VkPipelineLayoutCreateInfo pipeline_layout_create_info{};
     pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipeline_layout_create_info.setLayoutCount = 0;
-    pipeline_layout_create_info.pSetLayouts = VK_NULL_HANDLE;
     pipeline_layout_create_info.pushConstantRangeCount = 1;
     pipeline_layout_create_info.pPushConstantRanges = &push_constant_range;
-    /* TODO
-        pipeline_layout_create_info.setLayoutCount = 1;
-        pipeline_layout_create_info.pSetLayouts = &descriptor_set_layout;
-    */
+    pipeline_layout_create_info.setLayoutCount = 1;
+    pipeline_layout_create_info.pSetLayouts = &descriptor_set_layout;
     if (vkCreatePipelineLayout(logical_device, &pipeline_layout_create_info, VK_NULL_HANDLE, &pipeline_layout) != VK_SUCCESS)
-        ULogger::ulixerr("Failed to create pipeline layout");
+        ULogger::ulixerr("failed to create pipeline layout");
 
 
     __uii::vkalg::ensure_cache_exists(cache_file_path);
@@ -718,7 +714,7 @@ inline auto UApp::create_graphics_pipeline(const UAppInfo& application_info) -> 
     pipeline_cache_create_info.pInitialData = cache_data.data();
     VkPipelineCache pipeline_cache;
     if (vkCreatePipelineCache(logical_device, &pipeline_cache_create_info, nullptr, &pipeline_cache) != VK_SUCCESS)
-        ULogger::ulixerr("Failed to create pipeline cache");
+        ULogger::ulixerr("failed to create pipeline cache");
 
     VkGraphicsPipelineCreateInfo graphics_pipeline_create_info{};
     graphics_pipeline_create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -738,7 +734,7 @@ inline auto UApp::create_graphics_pipeline(const UAppInfo& application_info) -> 
     graphics_pipeline_create_info.basePipelineHandle = VK_NULL_HANDLE;
     graphics_pipeline_create_info.basePipelineIndex = -1;
     if (vkCreateGraphicsPipelines(logical_device, pipeline_cache, 1, &graphics_pipeline_create_info, VK_NULL_HANDLE, &graphics_pipeline) != VK_SUCCESS)
-        ULogger::ulixerr("Failed to create graphics pipeline");
+        ULogger::ulixerr("failed to create graphics pipeline");
 
 
     size_t cache_data_size;
@@ -789,7 +785,7 @@ inline auto UApp::create_render_pass() -> void {
     render_pass_info.dependencyCount = 1;
     render_pass_info.pDependencies = &subpass_dependency;
     if (vkCreateRenderPass(logical_device, &render_pass_info, VK_NULL_HANDLE, &render_pass) != VK_SUCCESS)
-        ULogger::ulixerr("Failed to create render pass");
+        ULogger::ulixerr("failed to create render pass");
 }
 
 inline auto UApp::create_swapchain_frame_buffers() -> void {
@@ -805,7 +801,7 @@ inline auto UApp::create_swapchain_frame_buffers() -> void {
         frame_buffer_create_info.height = swapchain_extent.height;
         frame_buffer_create_info.layers = 1;
         if (vkCreateFramebuffer(logical_device, &frame_buffer_create_info, VK_NULL_HANDLE, &swapchain_frame_buffers[index]) != VK_SUCCESS)
-            ULogger::ulixerr("Failed to create frame buffers");
+            ULogger::ulixerr("failed to create frame buffers");
     }
 }
 
@@ -815,7 +811,7 @@ inline auto UApp::create_command_pool() -> void {
     command_pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     command_pool_create_info.queueFamilyIndex = physical_device_infos.queue_family_indices.graphics_queue_family_index.value();
     if (vkCreateCommandPool(logical_device, &command_pool_create_info, VK_NULL_HANDLE, &command_pool) != VK_SUCCESS)
-        ULogger::ulixerr("Failed to create command pool");
+        ULogger::ulixerr("failed to create command pool");
 }
 
 inline auto UApp::create_command_buffers() -> void {
@@ -827,7 +823,7 @@ inline auto UApp::create_command_buffers() -> void {
     command_buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     command_buffer_allocate_info.commandBufferCount = static_cast<uts::u32>(command_buffers.size());
     if (vkAllocateCommandBuffers(logical_device, &command_buffer_allocate_info, command_buffers.data()) != VK_SUCCESS)
-        ULogger::ulixerr("Failed to allocate command buffer");
+        ULogger::ulixerr("failed to allocate command buffer");
 }
 
 inline auto UApp::create_sync_objects() -> void {
@@ -876,7 +872,17 @@ inline auto UApp::recreate_swapchain() -> void {
 }
 
 inline auto UApp::create_staging_buffer() -> void {
-    constexpr VkDeviceSize size = 1 << 22;
+    VkDeviceSize texture_size = 0;
+    texture_images.resize(texture_image_pixmaps.size());
+    for (uts::size index = 0; index < texture_image_pixmaps.size(); index++) {
+        VkMemoryRequirements memory_requirements = create_texture_image(index);
+        texture_size += memory_requirements.size;
+    }
+
+    VkDeviceSize vertex_size = render_vertices.size() * sizeof(__uii::vsdces::Vertex2D);
+    VkDeviceSize index_size = render_indices.size() * sizeof(uts::u32);
+
+    VkDeviceSize size = std::max(std::max(vertex_size, index_size), texture_size);
     staging_buffer = __uii::vkclses::Buffer(
         physical_device, logical_device,  size,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -915,7 +921,7 @@ inline auto UApp::record_command_buffer(VkCommandBuffer command_buffer, uts::u32
     command_buffer_begin_info.flags = 0;
     command_buffer_begin_info.pInheritanceInfo = VK_NULL_HANDLE;
     if (vkBeginCommandBuffer(command_buffer, &command_buffer_begin_info) != VK_SUCCESS)
-        ULogger::ulixerr("Failed to begin command buffer");
+        ULogger::ulixerr("failed to begin command buffer");
 
     VkClearValue clear_color = {{{current_background_color.get_red() / 255.0f, current_background_color.get_green() / 255.0f, current_background_color.get_blue() / 255.0f, current_background_color.get_alpha() / 255.0f}}};
     VkRenderPassBeginInfo render_pass_begin_info{};
@@ -947,15 +953,13 @@ inline auto UApp::record_command_buffer(VkCommandBuffer command_buffer, uts::u32
     vkCmdBindVertexBuffers(command_buffer, 0, 1, &vertex_buffer.buffer, offsets);
     vkCmdBindIndexBuffer(command_buffer, index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
-    /* TODO
-        vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &descriptor_sets[current_frame], 0, nullptr);
-    */
+    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &descriptor_set, 0, nullptr);
     vkCmdPushConstants(command_buffer, pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(__uii::vsdces::PushConstant), &push_constant);
     vkCmdDrawIndexed(command_buffer, static_cast<uts::u32>(render_indices.size()), 1, 0, 0, 0);
+
     vkCmdEndRenderPass(command_buffer);
-    
     if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS)
-        ULogger::ulixerr("Failed to end command buffer");
+        ULogger::ulixerr("failed to end command buffer");
 }
 
 inline auto UApp::draw_frame() -> void {
@@ -972,7 +976,7 @@ inline auto UApp::draw_frame() -> void {
         recreate_swapchain();
         return;
     } else if (acquire_result != VK_SUCCESS && acquire_result != VK_SUBOPTIMAL_KHR)
-        ULogger::ulixerr("Failed to acquire next image");
+        ULogger::ulixerr("failed to acquire next image");
 
     vkResetFences(logical_device, 1, &in_flight_fences[current_frame]);
     vkResetCommandBuffer(command_buffers[current_frame], 0);
@@ -1017,57 +1021,59 @@ inline auto UApp::create_descriptor_set_layout() -> void {
     descriptor_set_layout_create_info.bindingCount = 1;
     descriptor_set_layout_create_info.pBindings = &descriptor_set_layout_binding;
     if (vkCreateDescriptorSetLayout(logical_device, &descriptor_set_layout_create_info, nullptr, &descriptor_set_layout))
-        ULogger::ulixerr("Failed to create descriptor set layout");
+        ULogger::ulixerr("failed to create descriptor set layout");
 }
 
 inline auto UApp::create_descriptor_pool() -> void {
     VkDescriptorPoolSize descriptor_pool_size{};
     descriptor_pool_size.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    descriptor_pool_size.descriptorCount = static_cast<uts::u32>(texture_image_pixmaps.size()) * static_cast<uts::u32>(max_frames_in_flight);
-    
+    descriptor_pool_size.descriptorCount = static_cast<uts::u32>(texture_image_pixmaps.size());
+
     VkDescriptorPoolCreateInfo descriptor_pool_create_info{};
     descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     descriptor_pool_create_info.poolSizeCount = 1;
     descriptor_pool_create_info.pPoolSizes = &descriptor_pool_size;
-    descriptor_pool_create_info.maxSets = max_frames_in_flight;
+    descriptor_pool_create_info.maxSets = 1;
     if (vkCreateDescriptorPool(logical_device, &descriptor_pool_create_info, nullptr, &descriptor_pool))
-        ULogger::ulixerr("Failed to create descriptor pool");
+        ULogger::ulixerr("failed to create descriptor pool");
 }
 
 inline auto UApp::create_descriptor_set() -> void {
-    uts::vec<VkDescriptorSetLayout> layouts(max_frames_in_flight, descriptor_set_layout);
     VkDescriptorSetAllocateInfo descriptor_set_allocate_info{};
     descriptor_set_allocate_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     descriptor_set_allocate_info.descriptorPool = descriptor_pool;
-    descriptor_set_allocate_info.descriptorSetCount = static_cast<uts::u32>(max_frames_in_flight);
-    descriptor_set_allocate_info.pSetLayouts = layouts.data();
+    descriptor_set_allocate_info.descriptorSetCount = 1;
+    descriptor_set_allocate_info.pSetLayouts = &descriptor_set_layout;
+    if (vkAllocateDescriptorSets(logical_device, &descriptor_set_allocate_info, &descriptor_set))
+        ULogger::ulixerr("failed to allocate descriptor sets");
 
-    descriptor_sets.resize(max_frames_in_flight);
-    if (vkAllocateDescriptorSets(logical_device, &descriptor_set_allocate_info, descriptor_sets.data()))
-        ULogger::ulixerr("Failed to allocate descriptor sets");
 
-    for (const auto& descriptor_set : descriptor_sets) {
-        VkWriteDescriptorSet descriptor_set_write{};
-        descriptor_set_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptor_set_write.dstSet = descriptor_set;
-        descriptor_set_write.dstBinding = 0;
-        descriptor_set_write.dstArrayElement = 0;
-        descriptor_set_write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptor_set_write.descriptorCount = 1;
-        descriptor_set_write.pImageInfo = nullptr;
-        vkUpdateDescriptorSets(logical_device, 1, &descriptor_set_write, 0, nullptr);
+    std::vector<VkDescriptorImageInfo> descriptor_image_infos(texture_image_pixmaps.size());
+    for (uts::size index = 0; index < texture_image_pixmaps.size(); index++) {
+        descriptor_image_infos[index].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        descriptor_image_infos[index].imageView = texture_images[index].image_view;
+        descriptor_image_infos[index].sampler = texture_image_sampler;
     }
+
+    VkWriteDescriptorSet descriptor_set_write{};
+    descriptor_set_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptor_set_write.dstSet = descriptor_set;
+    descriptor_set_write.dstBinding = 0;
+    descriptor_set_write.dstArrayElement = 0;
+    descriptor_set_write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    descriptor_set_write.descriptorCount = static_cast<uts::u32>(texture_image_pixmaps.size());
+    descriptor_set_write.pImageInfo = descriptor_image_infos.data();
+    vkUpdateDescriptorSets(logical_device, 1, &descriptor_set_write, 0, nullptr);
 }
 
 inline auto UApp::create_texture_images() -> void {
-    texture_images.resize(texture_image_pixmaps.size());
-
     uts::vec<VkDeviceSize> offsets(texture_image_pixmaps.size());
     VkDeviceSize current_offset = 0;
     uts::u32 memory_type_bits;
-    
+
     for (uts::size index = 0; index < texture_image_pixmaps.size(); ++index) {
-        VkMemoryRequirements memory_requirements = create_texture_image(index);
+        VkMemoryRequirements memory_requirements;
+        vkGetImageMemoryRequirements(logical_device, texture_images[index].image, &memory_requirements);
         current_offset = (current_offset + memory_requirements.alignment - 1) & ~(memory_requirements.alignment - 1);
         offsets[index] = current_offset;
         current_offset += memory_requirements.size;
@@ -1076,40 +1082,51 @@ inline auto UApp::create_texture_images() -> void {
         else memory_type_bits &= memory_requirements.memoryTypeBits;
     }
 
+    VkDeviceSize staging_total_size = 0;
+    for (auto& pixmap : texture_image_pixmaps) {
+        staging_total_size += pixmap.get_pixel_size();
+    }
+
     VkMemoryAllocateInfo memory_allocate_info{};
     memory_allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     memory_allocate_info.allocationSize = current_offset;
     memory_allocate_info.memoryTypeIndex = __uii::vkalg::find_memory_type(physical_device, memory_type_bits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     if (vkAllocateMemory(logical_device, &memory_allocate_info, nullptr, &texture_image_memory))
-        ULogger::ulixerr("Failed to allocate texture image memory");
+        ULogger::ulixerr("failed to allocate texture image memory");
 
-    
+
     for (uts::size index = 0; index < texture_image_pixmaps.size(); index++)
-        vkBindImageMemory(logical_device, texture_images[index], texture_image_memory, offsets[index]);
-    
+        vkBindImageMemory(logical_device, texture_images[index].image, texture_image_memory, offsets[index]);
+
+    void* mapped; VkDeviceSize staging_offset = 0;
+    vkMapMemory(logical_device, staging_buffer.buffer_memory, 0, staging_total_size, 0, &mapped);
     VkCommandBuffer single_time_command_buffer = __uii::vkalg::start_single_time_command_buffer(logical_device, command_pool);
     for (uts::size index = 0; index < texture_image_pixmaps.size(); index++) {
-        VkImage image = texture_images[index];
+        VkImage image = texture_images[index].image;
         UPixmap pixmap = texture_image_pixmaps[index];
         URect rect = pixmap.get_rect();
-        
-        staging_buffer.map_memory(logical_device, pixmap.get_pixels().data(), pixmap.get_pixel_size());
-        __uii::vkalg::transition_image_layout(logical_device, single_time_command_buffer, image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-        __uii::vkalg::copy_buffer_to_image(logical_device, staging_buffer.buffer, single_time_command_buffer, image, rect.get_width(), rect.get_height());
-        __uii::vkalg::transition_image_layout(logical_device, single_time_command_buffer, image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+        memcpy((char*)mapped + staging_offset, pixmap.get_pixels().data(), pixmap.get_pixel_size());
+        offsets[index] = staging_offset;
+        staging_offset += pixmap.get_pixel_size();
+
+        __uii::vkalg::transition_image_layout(logical_device, single_time_command_buffer, image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        __uii::vkalg::copy_buffer_to_image(logical_device, staging_buffer.buffer, single_time_command_buffer, image, rect.get_width(), rect.get_height(), offsets[index]);
+        __uii::vkalg::transition_image_layout(logical_device, single_time_command_buffer, image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     }
     __uii::vkalg::end_single_time_command_buffer(logical_device, device_queues.graphics_queue, command_pool, single_time_command_buffer);
+    vkUnmapMemory(logical_device, staging_buffer.buffer_memory);
 }
 
 inline auto UApp::create_texture_image(uts::size index) -> VkMemoryRequirements {
-    VkImage& texture = texture_images[index];
+    VkImage& texture = texture_images[index].image;
     UPixmap pixmap = texture_image_pixmaps[index];
     URect rect = pixmap.get_rect();
-    
+
     VkImageCreateInfo image_create_info{};
     image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     image_create_info.imageType = VK_IMAGE_TYPE_2D;
-    image_create_info.format = VK_FORMAT_R8G8B8A8_SRGB;
+    image_create_info.format = VK_FORMAT_R8G8B8A8_UNORM;
     image_create_info.extent.width = rect.get_width();
     image_create_info.extent.height = rect.get_height();
     image_create_info.extent.depth = 1;
@@ -1121,24 +1138,50 @@ inline auto UApp::create_texture_image(uts::size index) -> VkMemoryRequirements 
     image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     image_create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     if (vkCreateImage(logical_device, &image_create_info, VK_NULL_HANDLE, &texture) != VK_SUCCESS)
-        ULogger::ulixerr("Failed to create texture image");
+        ULogger::ulixerr("failed to create texture image");
 
     VkMemoryRequirements memory_requirements;
     vkGetImageMemoryRequirements(logical_device, texture, &memory_requirements);
     return memory_requirements;
 }
 
+inline auto UApp::create_texture_image_views() -> void {
+    for (uts::size index = 0; index < texture_images.size(); ++index)
+        texture_images[index].image_view = __uii::vkalg::create_image_view(logical_device, texture_images[index].image, VK_FORMAT_R8G8B8A8_UNORM, 0, 1);
+}
+
+inline auto UApp::create_texture_image_sampler() -> void {
+    VkSamplerCreateInfo sampler_create_info{};
+    sampler_create_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    sampler_create_info.magFilter = VK_FILTER_LINEAR;
+    sampler_create_info.minFilter = VK_FILTER_LINEAR;
+    sampler_create_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    sampler_create_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    sampler_create_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    sampler_create_info.anisotropyEnable = VK_TRUE;
+    sampler_create_info.maxAnisotropy = physical_device_infos.properties.limits.maxSamplerAnisotropy;
+    sampler_create_info.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    sampler_create_info.unnormalizedCoordinates = VK_FALSE;
+    sampler_create_info.compareEnable = VK_FALSE;
+    sampler_create_info.compareOp = VK_COMPARE_OP_ALWAYS;
+    sampler_create_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    sampler_create_info.mipLodBias = 0.0f;
+    sampler_create_info.minLod = 0.0f;
+    sampler_create_info.maxLod = 0.0f;
+    if (vkCreateSampler(logical_device, &sampler_create_info, nullptr, &texture_image_sampler))
+        ULogger::ulixerr("failed to create texture image sampler");
+}
+
 inline auto UApp::destroy_vulkan_objects() -> void {
     vkDeviceWaitIdle(logical_device);
 
     destroy_swapchain();
+    vkDestroySampler(logical_device, texture_image_sampler, nullptr);
     for (const auto& image : texture_images)
-        vkDestroyImage(logical_device, image, VK_NULL_HANDLE);
+        image.release(logical_device);
     vkFreeMemory(logical_device, texture_image_memory, VK_NULL_HANDLE);
-    /* TODO
-        vkDestroyDescriptorPool(logical_device, descriptor_pool, VK_NULL_HANDLE);
-        vkDestroyDescriptorSetLayout(logical_device, descriptor_set_layout, VK_NULL_HANDLE);
-    */
+    vkDestroyDescriptorPool(logical_device, descriptor_pool, VK_NULL_HANDLE);
+    vkDestroyDescriptorSetLayout(logical_device, descriptor_set_layout, VK_NULL_HANDLE);
     index_buffer.release(logical_device);
     vertex_buffer.release(logical_device);
     staging_buffer.release(logical_device);
@@ -1170,13 +1213,7 @@ inline auto UApp::create_vulkan_objects(const UAppInfo& application_info, const 
     create_swapchain();
     create_swapchain_image_views();
     create_render_pass();
-
-    /* TODO
-        create_descriptor_set_layout();
-        create_descriptor_pool();
-        create_descriptor_set();
-    */
-    
+    create_descriptor_set_layout();
     create_graphics_pipeline(application_info);
     create_swapchain_frame_buffers();
     create_command_pool();
@@ -1184,8 +1221,12 @@ inline auto UApp::create_vulkan_objects(const UAppInfo& application_info, const 
     update_scene_objects();
     create_staging_buffer();
     create_texture_images();
+    create_texture_image_views();
+    create_texture_image_sampler();
     create_vertex_buffer();
     create_index_buffer();
+    create_descriptor_pool();
+    create_descriptor_set();
     update_object_buffers();
     create_command_buffers();
     create_sync_objects();

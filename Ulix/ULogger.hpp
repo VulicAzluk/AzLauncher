@@ -5,12 +5,12 @@
 
 namespace ULogger {
     template<typename... Args> [[noreturn]] inline void ulixerr(const char* format, Args&&... args) {
-        std::println("\x1b[31m[Ulix] Error: {}\x1b[0m", std::vformat(format, std::make_format_args(args...)));
+        std::println("ulix: \x1b[91merror:\x1b[0m {}", std::vformat(format, std::make_format_args(args...)));
         std::abort();
     }
 
     template<typename... Args>
     inline void ulixwarn(const char* format, Args&&... args) {
-        std::println("\x1b[33m[Ulix] Warning: {}\x1b[0m", std::vformat(format, std::make_format_args(args...)));
+        std::println("ulix: \x1b[93mwarning:\x1b[0m {}", std::vformat(format, std::make_format_args(args...)));
     }
 }

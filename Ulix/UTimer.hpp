@@ -24,20 +24,20 @@ template<typename... Args> class UTimer {
             return current_time - last_time;
         }
 
-        inline auto remove_timeout_events() -> void {
+        inline auto rmv_events() -> void {
             timeout_events = {};
         }
 
-        inline auto pop_timeout_events() -> void {
+        inline auto pop_event() -> void {
             timeout_events.pop_back();
         }
 
-        inline auto with_timeout_delay(uts::u64 delay) -> UTimer& {
+        inline auto delay(uts::u64 delay) -> UTimer& {
             timeout_delay = delay;
             return *this;
         }
 
-        inline auto with_timeout_event(TimeoutTask event) -> UTimer& {
+        inline auto event(TimeoutTask event) -> UTimer& {
             timeout_events.push_back(event);
             return *this;
         }

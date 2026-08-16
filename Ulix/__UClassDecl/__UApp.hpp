@@ -1,5 +1,6 @@
 #pragma once
 
+#include "vulkan/vulkan_core.h"
 #include <UAppInfo.hpp>
 #include <URenderInfo.hpp>
 #include <UWindowInfo.hpp>
@@ -24,7 +25,7 @@ class UApp {
         bool render_dirty = false;
 
         auto update_push_constant() -> void;
-        auto push_objects(uts::vec<UObject>& objects, uts::u32& render_index) -> void;
+        auto push_objects(uts::vec<UObject>& objects, uts::u32& render_index, uts::f32 parent_width, uts::f32 parent_height) -> void;
         auto update_scene_objects() -> void;
 
     public:
@@ -86,9 +87,10 @@ class UApp {
         uts::vec<UPixmap> texture_image_pixmaps;
         bool enabled_debug = false;
         VkDescriptorPool descriptor_pool;
-        uts::vec<VkDescriptorSet> descriptor_sets;
-        uts::vec<VkImage> texture_images;
+        VkDescriptorSet descriptor_set;
+        uts::vec<__uii::vkclses::TextureImage> texture_images;
         VkDeviceMemory texture_image_memory;
+        VkSampler texture_image_sampler;
 
         auto create_vulkan_objects(const UAppInfo& application_info, const URenderInfo& render_info) -> void;
         auto destroy_vulkan_objects() -> void;
@@ -124,6 +126,8 @@ class UApp {
         auto create_descriptor_set() -> void;
         auto create_texture_images() -> void;
         auto create_texture_image(uts::size index) -> VkMemoryRequirements;
+        auto create_texture_image_views() -> void;
+        auto create_texture_image_sampler() -> void;
 
     private:
         static auto WINAPI window_process(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) -> LRESULT;

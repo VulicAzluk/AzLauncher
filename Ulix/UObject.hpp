@@ -1,9 +1,11 @@
 #pragma once
 
+#include "ULayout.hpp"
 #include <UPixmap.hpp>
 #include <UAnchor.hpp>
 #include <URect.hpp>
 #include <UColor.hpp>
+#include <UAlignment.hpp>
 
 
 class UObject {
@@ -26,9 +28,12 @@ class UObject {
         uts::f32 bottom_right_border_width = 1.0f;
         URect rec = URect(100, 100, 200, 200);
         uts::f32 z_index = 0.0f;
-
         std::vector<UObject> objects;
-        UPixmap texture_image_pixmap;
+        uts::u32 texture_index;
+        uts::u8 alignment = UAlignment::Center;
+        uts::u32 vpaddin = 5;
+        uts::u32 hpaddin = 5;
+        ULayout objlayout = ULayout::None;
 
     public:
         UObject() = default;
@@ -102,17 +107,17 @@ class UObject {
             return *this;
         }
 
-        auto rect(const URect& rec) -> UObject& {
+        inline auto rect(const URect& rec) -> UObject& {
             this->rec = rec;
             return *this;
         }
 
-        auto zindex(uts::f32 index) -> UObject& {
+        inline auto zindex(uts::f32 index) -> UObject& {
             z_index = index;
             return *this;
         }
 
-        auto child(UObject& object) -> UObject& {
+        inline auto child(UObject& object) -> UObject& {
             object.rect(object.get_rect().new_with_pos(
                 object.get_rect().get_x() + rec.get_x(),
                 object.get_rect().get_y() + rec.get_y()));
@@ -120,34 +125,58 @@ class UObject {
             return *this;
         }
 
-        auto texture(const UPixmap& image_pixmap) -> UObject& {
-            texture_image_pixmap = image_pixmap;
+        inline auto texture(const uts::u32 index) -> UObject& {
+            texture_index = index;
             return *this;
         }
 
+        inline auto align(uts::u8 alignment) -> UObject& {
+            this->alignment = alignment;
+            return *this;
+        }
+
+        inline auto vpadding(uts::u32 padding) -> UObject& {
+            vpaddin = padding;
+            return *this;
+        }
+
+        inline auto hpadding(uts::u32 padding) -> UObject& {
+            hpaddin = padding;
+            return *this;
+        }
+
+        inline auto layout(ULayout objlayout) -> UObject& {
+            this->objlayout = objlayout;
+            return *this;
+        }
+        
     public:
-        auto get_top_left_color() const -> const UColor& { return top_left_color; }
-        auto get_top_right_color() const -> const UColor& { return top_right_color; }
-        auto get_bottom_left_color() const -> const UColor& { return bottom_left_color; }
-        auto get_bottom_right_color() const -> const UColor& { return bottom_right_color; }
+        inline auto get_top_left_color() const -> const UColor& { return top_left_color; }
+        inline auto get_top_right_color() const -> const UColor& { return top_right_color; }
+        inline auto get_bottom_left_color() const -> const UColor& { return bottom_left_color; }
+        inline auto get_bottom_right_color() const -> const UColor& { return bottom_right_color; }
 
-        auto get_top_left_border_color() const -> const UColor& { return top_left_border_color; }
-        auto get_top_right_border_color() const -> const UColor& { return top_right_border_color; }
-        auto get_bottom_left_border_color() const -> const UColor& { return bottom_left_border_color; }
-        auto get_bottom_right_border_color() const -> const UColor& { return bottom_right_border_color; }
+        inline auto get_top_left_border_color() const -> const UColor& { return top_left_border_color; }
+        inline auto get_top_right_border_color() const -> const UColor& { return top_right_border_color; }
+        inline auto get_bottom_left_border_color() const -> const UColor& { return bottom_left_border_color; }
+        inline auto get_bottom_right_border_color() const -> const UColor& { return bottom_right_border_color; }
 
-        auto get_top_left_corner_radius() const -> uts::f32 { return top_left_corner_radius; }
-        auto get_top_right_corner_radius() const -> uts::f32 { return top_right_corner_radius; }
-        auto get_bottom_left_corner_radius() const -> uts::f32 { return bottom_left_corner_radius; }
-        auto get_bottom_right_corner_radius() const -> uts::f32 { return bottom_right_corner_radius; }
+        inline auto get_top_left_corner_radius() const -> uts::f32 { return top_left_corner_radius; }
+        inline auto get_top_right_corner_radius() const -> uts::f32 { return top_right_corner_radius; }
+        inline auto get_bottom_left_corner_radius() const -> uts::f32 { return bottom_left_corner_radius; }
+        inline auto get_bottom_right_corner_radius() const -> uts::f32 { return bottom_right_corner_radius; }
 
-        auto get_top_left_border_width() const -> uts::f32 { return top_left_border_width; }
-        auto get_top_right_border_width() const -> uts::f32 { return top_right_border_width; }
-        auto get_bottom_left_border_width() const -> uts::f32 { return bottom_left_border_width; }
-        auto get_bottom_right_border_width() const -> uts::f32 { return bottom_right_border_width; }
+        inline auto get_top_left_border_width() const -> uts::f32 { return top_left_border_width; }
+        inline auto get_top_right_border_width() const -> uts::f32 { return top_right_border_width; }
+        inline auto get_bottom_left_border_width() const -> uts::f32 { return bottom_left_border_width; }
+        inline auto get_bottom_right_border_width() const -> uts::f32 { return bottom_right_border_width; }
 
-        auto get_rect() const -> const URect& { return rec; }
-        auto get_z_index() const -> uts::f32 { return z_index; }
-        auto get_objects() const -> std::vector<UObject> { return objects; }
-        auto get_texture_image() const -> const UPixmap& { return texture_image_pixmap; }
+        inline auto get_rect() const -> const URect& { return rec; }
+        inline auto get_z_index() const -> uts::f32 { return z_index; }
+        inline auto get_objects() const -> std::vector<UObject> { return objects; }
+        inline auto get_texture_index() const -> uts::u32 { return texture_index; }
+        inline auto get_alignment() const -> uts::u8 { return alignment; }
+        inline auto get_vpadding() const -> uts::u32 { return vpaddin; }
+        inline auto get_hpadding() const -> uts::u32 { return hpaddin; }
+        inline auto get_layout() const -> ULayout { return objlayout; }
 };

@@ -1,5 +1,6 @@
 #pragma once
 
+
 #include "vulkan/vulkan_core.h"
 #include <__UInsideImpl/__VulkanClasses.hpp>
 #include <UColor.hpp>
@@ -15,14 +16,14 @@ namespace __uii::vkalg {
                          color.get_blue() / 255.0f,
                          color.get_alpha() / 255.0f);
     }
- 
+
     inline auto get_device_score(const __uii::vkclses::PhysicalDeviceInfos& device_infos) -> uts::u32 {
         uts::u64 device_local_bytes = 0;
         for (uts::u32 index = 0; index < device_infos.memory_properties.memoryHeapCount; ++index) {
             if (!(device_infos.memory_properties.memoryHeaps[index].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT)) continue;
             device_local_bytes += device_infos.memory_properties.memoryHeaps[index].size;
         }
-    
+
         return device_infos.properties.limits.maxImageDimension2D +
             device_infos.properties.limits.maxUniformBufferRange / (1 << 20) +
             device_infos.properties.limits.maxComputeWorkGroupCount[0] / 65536 +
@@ -35,19 +36,19 @@ namespace __uii::vkalg {
     inline auto find_memory_type(VkPhysicalDevice device, uts::u32 type_filter, VkMemoryPropertyFlags properties) -> uts::u32 {
         VkPhysicalDeviceMemoryProperties physical_device_memory_properties;
         vkGetPhysicalDeviceMemoryProperties(device, &physical_device_memory_properties);
-    
+
         for (uts::u32 index = 0; index < physical_device_memory_properties.memoryTypeCount; index++) {
             if ((type_filter & (1 << index)) && (physical_device_memory_properties.memoryTypes[index].propertyFlags & properties) == properties) {
                 return index;
             }
         }
-    
+
         ULogger::ulixerr("Failed to find suitable memory type");
     }
 
     inline auto start_single_time_command_buffer(VkDevice device, VkCommandPool command_pool) -> VkCommandBuffer {
         VkCommandBuffer command_buffer;
-        
+
         VkCommandBufferAllocateInfo command_buffer_allocate_info{};
         command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         command_buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -55,13 +56,13 @@ namespace __uii::vkalg {
         command_buffer_allocate_info.commandPool = command_pool;
         if (vkAllocateCommandBuffers(device, &command_buffer_allocate_info, &command_buffer))
             ULogger::ulixerr("Failed to allocate single time command buffer");
-        
+
         VkCommandBufferBeginInfo command_buffer_begin_info{};
         command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
         if (vkBeginCommandBuffer(command_buffer, &command_buffer_begin_info))
             ULogger::ulixerr("Failed to begin single time command buffer");
-        
+
         return command_buffer;
     }
 
@@ -75,7 +76,7 @@ namespace __uii::vkalg {
         submit_info.pCommandBuffers = &command_buffer;
         if (vkQueueSubmit(queue, 1, &submit_info, nullptr))
             ULogger::ulixerr("Failed to submit single time command buffer");
-        
+
         vkQueueWaitIdle(queue);
         vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
     }
@@ -83,7 +84,7 @@ namespace __uii::vkalg {
     inline auto transition_image_layout(VkDevice device, VkCommandBuffer single_buffer, VkImage image, VkFormat format, VkImageLayout old_layout, VkImageLayout new_layout) -> void {
         VkPipelineStageFlags src_stage;
         VkPipelineStageFlags dst_stage;
-        
+
         VkImageMemoryBarrier image_memory_barrier{};
         image_memory_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
         image_memory_barrier.oldLayout = old_layout;
@@ -99,23 +100,23 @@ namespace __uii::vkalg {
         if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED && new_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
             image_memory_barrier.srcAccessMask = 0;
             image_memory_barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-        
+
             src_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             dst_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
         } else if (old_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
             image_memory_barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
             image_memory_barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-        
+
             src_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
             dst_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
         } else ULogger::ulixerr("Invalid layout format");
-        
+
         vkCmdPipelineBarrier(single_buffer, src_stage, dst_stage, 0, 0, nullptr, 0, nullptr, 1, &image_memory_barrier);
     }
 
-    inline auto copy_buffer_to_image(VkDevice device, VkBuffer dst_buffer, VkCommandBuffer single_buffer, VkImage image, uts::u32 width, uts::u32 height) -> void {
+    inline auto copy_buffer_to_image(VkDevice device, VkBuffer dst_buffer, VkCommandBuffer single_buffer, VkImage image, uts::u32 width, uts::u32 height, VkDeviceSize buffer_offset) -> void {
         VkBufferImageCopy buffer_image_copy_region{};
-        buffer_image_copy_region.bufferOffset = 0;
+        buffer_image_copy_region.bufferOffset = buffer_offset;
         buffer_image_copy_region.bufferRowLength = 0;
         buffer_image_copy_region.bufferImageHeight = 0;
         buffer_image_copy_region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -125,6 +126,24 @@ namespace __uii::vkalg {
         buffer_image_copy_region.imageOffset = {0, 0, 0};
         buffer_image_copy_region.imageExtent = {width, height, 1};
         vkCmdCopyBufferToImage(single_buffer, dst_buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &buffer_image_copy_region);
+    }
+
+    inline auto create_image_view(VkDevice device, VkImage image, VkFormat format, uts::u32 base_array_layer = 0, uts::u32 layer_count = 1) -> VkImageView {
+        VkImageView image_view;
+        VkImageViewCreateInfo image_view_create_info{};
+        image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        image_view_create_info.image = image;
+        image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        image_view_create_info.format = format;
+        image_view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        image_view_create_info.subresourceRange.baseMipLevel = 0;
+        image_view_create_info.subresourceRange.levelCount = 1;
+        image_view_create_info.subresourceRange.baseArrayLayer = base_array_layer;
+        image_view_create_info.subresourceRange.layerCount = layer_count;
+        if (vkCreateImageView(device, &image_view_create_info, nullptr, &image_view) != VK_SUCCESS)
+            ULogger::ulixerr("Failed to create image view");
+    
+        return image_view;
     }
 
     /* ============================== File Algorithm ============================== */

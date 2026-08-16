@@ -55,7 +55,7 @@ namespace __uii::vkclses {
 
         inline auto select_surface_format() -> VkSurfaceFormatKHR {
             for (const auto& format : surface_formats)
-                if (format.format == VK_FORMAT_B8G8R8A8_SRGB && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+                if (format.format == VK_FORMAT_B8G8R8A8_UNORM && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
                     return format;
 
             return surface_formats[0];
@@ -249,6 +249,17 @@ namespace __uii::vkclses {
             }
 
             ULogger::ulixerr("Failed to find suitable memory type");
+        }
+    };
+
+    struct TextureImage {
+        VkImage image;
+        VkImageView image_view;
+
+        inline TextureImage() = default;
+        inline auto release(VkDevice device) const -> void {
+            vkDestroyImage(device, image, nullptr);
+            vkDestroyImageView(device, image_view, nullptr);
         }
     };
 }

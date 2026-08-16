@@ -3,6 +3,9 @@
 #include <UTypes.hpp>
 
 class URect {
+    public:
+        enum Pixels: uts::i8 { Full = -1 };
+
     private:
         uts::f32 x, y;
         uts::f32 width, height;
