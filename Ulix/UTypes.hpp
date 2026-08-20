@@ -3,6 +3,7 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 namespace uts {
     using i8 = std::int8_t;
@@ -18,9 +19,12 @@ namespace uts {
     using size = std::size_t;
     using str = std::string;
     using wstr = std::wstring;
+    using bytes = std::vector<u8>;
     template<typename T> using vec = std::vector<T>;
     template<typename T> using set = std::set<T>;
     template<typename T, uts::size array_size> using arr = std::array<T, array_size>;
+    template<typename K, typename V> using hashmap = std::unordered_map<K, V>;
+    template<typename A, typename B> using pair = std::pair<A, B>;
 
     #ifdef __clang__
         using i128 = __int128_t;

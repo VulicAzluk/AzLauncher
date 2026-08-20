@@ -1,10 +1,11 @@
 #pragma once
 
 
+#include <vulkan/vulkan_core.h>
 #include <UScene.hpp>
 #include <UTypes.hpp>
 #include <ULogger.hpp>
-#include <__UInsideImpl/__VulkanRequirements.hpp>
+#include <__inside_impl/__VulkanRequirements.hpp>
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -197,7 +198,7 @@ namespace __uii::vkclses {
         inline auto map_memory(VkDevice device, const void* data, VkDeviceSize size) -> void {
             void* dst_data;
             vkMapMemory(device, buffer_memory, 0, size, 0, &dst_data);
-                memcpy(dst_data, data, static_cast<std::size_t>(size));
+                memcpy(dst_data, data, static_cast<uts::size>(size));
             vkUnmapMemory(device, buffer_memory);
         }
 
@@ -257,9 +258,11 @@ namespace __uii::vkclses {
         VkImageView image_view;
 
         inline TextureImage() = default;
-        inline auto release(VkDevice device) const -> void {
-            vkDestroyImage(device, image, nullptr);
-            vkDestroyImageView(device, image_view, nullptr);
+        inline auto release(VkDevice device) -> void {
+            vkDestroyImage(device, image, VK_NULL_HANDLE);
+            vkDestroyImageView(device, image_view, VK_NULL_HANDLE);
+            image = VK_NULL_HANDLE;
+            image_view = VK_NULL_HANDLE;
         }
     };
 }

@@ -8,7 +8,7 @@
 ## Platform
 - Supported OS: `Windows`
 - Minimum supported Windows version: `Windows 7 SP1 x64`
-- Graphics API: `Vulkan 1.0+`
+- Graphics API: `Vulkan 1.2+`
 
 ## Credits
 - VulicAzluk - Creator, architect, and sole developer

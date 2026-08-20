@@ -1,6 +1,6 @@
 #pragma once
 
-#include "URect.hpp"
+#include <URect.hpp>
 #include <UTypes.hpp>
 #include <UColor.hpp>
 #include <UObject.hpp>
@@ -19,9 +19,10 @@ class UScene {
         UScene() = default;
 
     public:
-        inline auto child(UObject& object) -> UScene& {
-            object.rect(object.get_rect().new_with_pos(object.get_rect().get_x(), object.get_rect().get_y() + 2.5));
+        inline auto child(const UObject& object) -> UScene& {
             objects.push_back(object);
+            for (const auto& child : object.get_objects())
+                objects.push_back(child);
             return *this;
         }
 

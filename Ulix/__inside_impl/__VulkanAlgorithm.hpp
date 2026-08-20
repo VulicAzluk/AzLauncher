@@ -1,8 +1,7 @@
 #pragma once
 
 
-#include "vulkan/vulkan_core.h"
-#include <__UInsideImpl/__VulkanClasses.hpp>
+#include <__inside_impl/__VulkanClasses.hpp>
 #include <UColor.hpp>
 #include <ULogger.hpp>
 #include <filesystem>
@@ -128,7 +127,7 @@ namespace __uii::vkalg {
         vkCmdCopyBufferToImage(single_buffer, dst_buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &buffer_image_copy_region);
     }
 
-    inline auto create_image_view(VkDevice device, VkImage image, VkFormat format, uts::u32 base_array_layer = 0, uts::u32 layer_count = 1) -> VkImageView {
+    inline auto create_image_view(VkDevice device, VkImage image, VkFormat format) -> VkImageView {
         VkImageView image_view;
         VkImageViewCreateInfo image_view_create_info{};
         image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -138,12 +137,16 @@ namespace __uii::vkalg {
         image_view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         image_view_create_info.subresourceRange.baseMipLevel = 0;
         image_view_create_info.subresourceRange.levelCount = 1;
-        image_view_create_info.subresourceRange.baseArrayLayer = base_array_layer;
-        image_view_create_info.subresourceRange.layerCount = layer_count;
+        image_view_create_info.subresourceRange.baseArrayLayer = 0;
+        image_view_create_info.subresourceRange.layerCount = 1;
         if (vkCreateImageView(device, &image_view_create_info, nullptr, &image_view) != VK_SUCCESS)
             ULogger::ulixerr("Failed to create image view");
-    
+
         return image_view;
+    }
+
+    inline auto empty_pixmap() -> UPixmap {
+        return UPixmap(uts::vec<uts::u8>{0, 0, 0, 0}, 1, 1);
     }
 
     /* ============================== File Algorithm ============================== */

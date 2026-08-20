@@ -9,7 +9,7 @@
 #include <UObject.hpp>
 #include <URect.hpp>
 #include <UScene.hpp>
-#include <UApp.hpp>
+#include <UContext.hpp>
 #include <UWindowAttribute.hpp>
 #include <UWindowInfo.hpp>
 #include <UAppInfo.hpp>
@@ -48,28 +48,28 @@ inline std::filesystem::path get_cache_path() {
 
 namespace AppSetup {
     inline UWindowInfo window_info;
-    inline UAppInfo appinfo;
+    inline UAppInfo app_info;
     inline URenderInfo render_info;
 
-    inline void init(UApp::RenderCallback render_callback, uts::vec<UPixmap> texture_images) {
-        UApp::init();
+    inline void init(uts::arr<uts::u32, 3> version, UContext::RenderCallback render_callback) {
+        UContext::init();
+        UPixmap::init();
 
         window_info = UWindowInfo("AzLauncher", "AzLauncherWindowClass")
             .unattrs(UWindowAttrs::Titled)
             .rect(UScreen::get_rect().new_with_widthper(0.8, 0.625));
-        appinfo = UAppInfo("AzLauncher", (get_cache_path() / "cache.bin").string())
-            .version(1, 0, 0)
+        app_info = UAppInfo("AzLauncher", (get_cache_path() / "cache.bin").string())
+            .version(version[0], version[1], version[2])
             .vkdbg(enabled_vulkan_debug);
-        render_info = URenderInfo(render_callback)
-            .textures(texture_images);
+        render_info = URenderInfo(render_callback);
     }
 
-    inline int exec(UApp::TickTimer tick_timer) {
-        UApp application = UApp(appinfo, window_info, render_info);
-        application.set_rect(UScreen::get_rect().new_center(application.rect()));
-        application.set_timer(tick_timer);
+    inline int exec(UContext::TickTimer tick_timer) {
+        UContext ctx = UContext(app_info, window_info, render_info);
+        ctx.set_rect(UScreen::get_rect().new_center(ctx.rect()));
+        ctx.set_timer(tick_timer);
 
-        application.show();
-        return application.exec();
+        ctx.show();
+        return ctx.exec();
     }
 }

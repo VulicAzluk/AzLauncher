@@ -2,11 +2,14 @@
 
 #include <format>
 #include <print>
+#define NOMINMAX
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 
 namespace ULogger {
     template<typename... Args> [[noreturn]] inline void ulixerr(const char* format, Args&&... args) {
         std::println("ulix: \x1b[91merror:\x1b[0m {}", std::vformat(format, std::make_format_args(args...)));
-        std::abort();
+        ExitProcess(-1);
     }
 
     template<typename... Args>
